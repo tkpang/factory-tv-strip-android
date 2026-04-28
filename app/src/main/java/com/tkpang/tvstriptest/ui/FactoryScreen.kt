@@ -248,6 +248,7 @@ private fun TargetCountDial(count: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun ScanDevicesDialog(
     state: FactoryUiState,
     onStopScan: () -> Unit,
