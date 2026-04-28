@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +27,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +37,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.tkpang.tvstriptest.factory.FactoryUiState
 import com.tkpang.tvstriptest.model.DeviceConnectionState
 import com.tkpang.tvstriptest.model.FactoryDevice
@@ -117,6 +120,15 @@ fun FactoryScreen(
             )
         }
     }
+
+    if (state.isScanning) {
+        ScanDevicesDialog(
+            state = state,
+            onStopScan = onStopScan,
+            onConnectSelected = onConnectSelected,
+            onDeviceSelected = onDeviceSelected,
+        )
+    }
 }
 
 @Composable
@@ -178,28 +190,143 @@ private fun StepProductAndScan(
                 )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(
-                value = state.settings.rssiThreshold.toString(),
-                onValueChange = { it.toIntOrNull()?.let(onRssiThresholdChange) },
-                label = { Text("信号阈值") },
-                supportingText = { Text("数值越大，要求设备越近") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = state.settings.targetDeviceCount.toString(),
-                onValueChange = { it.toIntOrNull()?.let(onTargetCountChange) },
-                label = { Text("目标数量") },
-                supportingText = { Text("本次要连几台") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-        }
+        SignalThresholdSlider(
+            threshold = state.settings.rssiThreshold,
+            onChange = onRssiThresholdChange,
+        )
+        TargetCountDial(
+            count = state.settings.targetDeviceCount,
+            onChange = onTargetCountChange,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = onStartScan, enabled = !state.isScanning && !state.isBusy) { Text("开始扫描") }
             OutlinedButton(onClick = onStopScan, enabled = state.isScanning && !state.isBusy) { Text("停止扫描") }
         }
+    }
+}
+
+@Composable
+private fun SignalThresholdSlider(threshold: Int, onChange: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("自动勾选范围", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text("信号 ${threshold} dBm", color = Color(0xFF0B57D0), fontWeight = FontWeight.Bold)
+        }
+        Slider(
+            value = threshold.toFloat(),
+            onValueChange = { onChange(it.toInt()) },
+            valueRange = -90f..-35f,
+            steps = 54,
+        )
+        Row {
+            Text("远一些", color = Color(0xFF5F6368), modifier = Modifier.weight(1f))
+            Text("近一些", color = Color(0xFF5F6368))
+        }
+        Text("推荐：只让本工位附近设备自动打勾，旁边工位的设备默认不选。", color = Color(0xFF5F6368), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun TargetCountDial(count: Int, onChange: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("本次最多连接", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            OutlinedButton(onClick = { onChange((count - 1).coerceAtLeast(1)) }) { Text("－") }
+            Surface(color = Color(0xFFEAF2FF), shape = RoundedCornerShape(14.dp)) {
+                Text("$count 台", modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp), color = Color(0xFF0B57D0), fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(onClick = { onChange((count + 1).coerceAtMost(20)) }) { Text("＋") }
+        }
+        Slider(
+            value = count.toFloat(),
+            onValueChange = { onChange(it.toInt().coerceIn(1, 20)) },
+            valueRange = 1f..20f,
+            steps = 18,
+        )
+        Text("滑动或点击加减号，设置这一批最多连接几台。", color = Color(0xFF5F6368), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun ScanDevicesDialog(
+    state: FactoryUiState,
+    onStopScan: () -> Unit,
+    onConnectSelected: () -> Unit,
+    onDeviceSelected: (String, Boolean) -> Unit,
+) {
+    val strongDevices = state.scanDevices.filter { it.rssi >= state.settings.rssiThreshold }
+    val weakDevices = state.scanDevices.filter { it.rssi < state.settings.rssiThreshold }
+    val scanByAddress = state.scanDevices.associateBy { it.address }
+    val devicesByAddress = state.devices.associateBy { it.address }
+
+    Dialog(
+        onDismissRequest = onStopScan,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            shape = RoundedCornerShape(24.dp),
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("正在扫描附近灯带", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("请把手机靠近本工位灯带。绿色设备已自动勾选，橙色设备可手动选择。", color = Color(0xFF5F6368))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ScanCounter("符合条件", strongDevices.size, Color(0xFF188038))
+                    ScanCounter("信号较弱", weakDevices.size, Color(0xFFB06000))
+                    ScanCounter("已选择", state.selectedCount, Color(0xFF0B57D0), suffix = "/${state.settings.targetDeviceCount}")
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item { GroupTitle("符合条件，已自动选择", "这些设备距离合适，可以直接连接") }
+                    if (strongDevices.isEmpty()) {
+                        item { GroupEmpty("暂无符合条件设备，请靠近设备或调低范围要求。") }
+                    }
+                    items(strongDevices, key = { "strong-${it.address}" }) { scan ->
+                        val device = devicesByAddress[scan.address] ?: scan.toFactoryDevice()
+                        DeviceCard(device = device, scanDevice = scanByAddress[scan.address], onDeviceSelected = onDeviceSelected)
+                    }
+                    item { GroupTitle("信号较弱，可手动选择", "如果确认是本工位设备，可以手动打勾") }
+                    if (weakDevices.isEmpty()) {
+                        item { GroupEmpty("暂无信号较弱设备。") }
+                    }
+                    items(weakDevices, key = { "weak-${it.address}" }) { scan ->
+                        val device = devicesByAddress[scan.address] ?: scan.toFactoryDevice()
+                        DeviceCard(device = device, scanDevice = scanByAddress[scan.address], onDeviceSelected = onDeviceSelected)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = onStopScan, modifier = Modifier.weight(1f)) { Text("停止扫描") }
+                    Button(onClick = onConnectSelected, enabled = state.selectedCount > 0 && !state.isBusy, modifier = Modifier.weight(1f)) { Text("连接勾选设备") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScanCounter(label: String, count: Int, color: Color, suffix: String = "") {
+    Surface(color = color.copy(alpha = 0.12f), shape = RoundedCornerShape(16.dp)) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("$count$suffix", color = color, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(label, color = color, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+private fun GroupTitle(title: String, hint: String) {
+    Column(Modifier.padding(top = 6.dp)) {
+        Text(title, fontWeight = FontWeight.Bold)
+        Text(hint, color = Color(0xFF5F6368), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun GroupEmpty(text: String) {
+    Surface(color = Color(0xFFF1F3F4), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+        Text(text, modifier = Modifier.padding(12.dp), color = Color(0xFF5F6368))
     }
 }
 
@@ -393,3 +520,10 @@ private fun deviceStateColor(state: DeviceConnectionState): Color = when (state)
 }
 
 private fun colorName(rgb: Int): String = FACTORY_COLOR_CHOICES.firstOrNull { it.rgb == rgb }?.label ?: "自定义颜色"
+
+private fun ScanDevice.toFactoryDevice(): FactoryDevice = FactoryDevice(
+    address = address,
+    name = name,
+    rssi = rssi,
+    state = DeviceConnectionState.Discovered,
+)
