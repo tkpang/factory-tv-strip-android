@@ -31,7 +31,7 @@ data class FactoryUiState(
     val devices: List<FactoryDevice> = emptyList(),
     val isScanning: Boolean = false,
     val isBusy: Boolean = false,
-    val statusMessage: String = "Ready",
+    val statusMessage: String = "请先选择产品，然后扫描设备",
 ) {
     val selectedCount: Int get() = scanDevices.count { it.selected }
     val connectedCount: Int get() = devices.count { it.state == DeviceConnectionState.Connected || it.state == DeviceConnectionState.Ready }
@@ -53,7 +53,7 @@ class FactoryViewModel(
                         state.copy(
                             scanDevices = scanDevices,
                             devices = mergeScanDevices(state.devices, scanDevices),
-                            statusMessage = if (scanDevices.isEmpty()) state.statusMessage else "Found ${scanDevices.size} devices",
+                            statusMessage = if (scanDevices.isEmpty()) state.statusMessage else "已发现 ${scanDevices.size} 台设备，请确认勾选后点击连接",
                         )
                     }
                 }
@@ -96,14 +96,14 @@ class FactoryViewModel(
         _uiState.update {
             it.copy(
                 isScanning = started,
-                statusMessage = if (started) "Scanning" else "Scan unavailable or permission missing",
+                statusMessage = if (started) "正在扫描附近设备..." else "没有权限或蓝牙未打开，无法扫描",
             )
         }
     }
 
     fun stopScan() {
         scanner?.stop()
-        _uiState.update { it.copy(isScanning = false, statusMessage = "Scan stopped") }
+        _uiState.update { it.copy(isScanning = false, statusMessage = "扫描已停止") }
     }
 
     fun setSelected(address: String, selected: Boolean) {
@@ -116,23 +116,23 @@ class FactoryViewModel(
     }
 
     fun connectSelected() {
-        runSelected("Connecting", DeviceConnectionState.Connecting) { device, _ -> dispatcher.connect(device) }
+        runSelected("正在连接设备...", DeviceConnectionState.Connecting) { device, _ -> dispatcher.connect(device) }
     }
 
     fun setLightPid() {
-        runSelected("Setting PID", DeviceConnectionState.Connected) { device, settings ->
+        runSelected("正在写入产品型号...", DeviceConnectionState.Connected) { device, settings ->
             dispatcher.setPid(device, settings)
         }
     }
 
     fun setColor(rgb: Int) {
-        runSelected("Setting color", DeviceConnectionState.Connected) { device, settings ->
+        runSelected("正在设置灯光...", DeviceConnectionState.Connected) { device, settings ->
             dispatcher.setColor(device, settings, rgb)
         }
     }
 
     fun setHighestPowerColor() {
-        runSelected("Setting highest power color", DeviceConnectionState.Connected) { device, settings ->
+        runSelected("正在测试最高亮度...", DeviceConnectionState.Connected) { device, settings ->
             dispatcher.setHighestPowerColor(device, settings)
         }
     }
@@ -142,7 +142,7 @@ class FactoryViewModel(
             .filter { it.state == DeviceConnectionState.Connected || it.state == DeviceConnectionState.Ready }
             .map { it.address }
             .toSet()
-        runDevices("Unbinding", targetAddresses, DeviceConnectionState.Connected) { device, _ ->
+        runDevices("正在解绑设备...", targetAddresses, DeviceConnectionState.Connected) { device, _ ->
             dispatcher.unbindAndDelete(device)
         }
     }
@@ -163,11 +163,11 @@ class FactoryViewModel(
         action: suspend (FactoryDevice, FactorySettings) -> CommandResult,
     ) {
         if (targetAddresses.isEmpty()) {
-            _uiState.update { it.copy(statusMessage = "No target devices") }
+            _uiState.update { it.copy(statusMessage = "没有可操作的设备，请先扫描并连接设备") }
             return
         }
         if (!operationBusy.compareAndSet(false, true)) {
-            _uiState.update { it.copy(statusMessage = "Busy") }
+            _uiState.update { it.copy(statusMessage = "正在执行上一项操作，请稍等") }
             return
         }
 
@@ -246,7 +246,7 @@ class FactoryViewModel(
     private fun summarizeSelected(devices: List<FactoryDevice>, selectedAddresses: Set<String>): String {
         val selected = devices.filter { it.address in selectedAddresses }
         val failed = selected.count { it.state == DeviceConnectionState.Failed }
-        return if (failed == 0) "Completed ${selected.size} devices" else "Completed with $failed failures"
+        return if (failed == 0) "本次操作完成，共 ${selected.size} 台设备" else "有 $failed 台失败，请查看设备卡片错误原因"
     }
 
     private companion object {

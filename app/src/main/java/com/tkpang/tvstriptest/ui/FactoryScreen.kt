@@ -1,6 +1,8 @@
 package com.tkpang.tvstriptest.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,34 +12,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tkpang.tvstriptest.factory.FactoryUiState
+import com.tkpang.tvstriptest.model.DeviceConnectionState
 import com.tkpang.tvstriptest.model.FactoryDevice
 import com.tkpang.tvstriptest.model.ProductCatalog
 import com.tkpang.tvstriptest.model.ScanDevice
 
-private data class ColorChoice(val label: String, val rgb: Int)
+private data class ColorChoice(val label: String, val rgb: Int, val color: Color)
 
 private val FACTORY_COLOR_CHOICES = listOf(
-    ColorChoice("红", 0xFF0000),
-    ColorChoice("绿", 0x00FF00),
-    ColorChoice("蓝", 0x0000FF),
-    ColorChoice("白", 0xFFFFFF),
-    ColorChoice("黑", 0x000000),
+    ColorChoice("红色", 0xFF0000, Color(0xFFE53935)),
+    ColorChoice("绿色", 0x00FF00, Color(0xFF43A047)),
+    ColorChoice("蓝色", 0x0000FF, Color(0xFF1E88E5)),
+    ColorChoice("白色", 0xFFFFFF, Color(0xFFF5F5F5)),
+    ColorChoice("黑色", 0x000000, Color(0xFF212121)),
 )
 
 @Composable
@@ -60,186 +71,324 @@ fun FactoryScreen(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxSize().background(Color(0xFFF5F7FB)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        item { HeaderCard(state) }
         item {
-            Text(
-                text = "TV Strip Factory",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(text = "Status: ${state.statusMessage}")
-        }
-
-        item {
-            SettingsCard(
+            StepProductAndScan(
                 state = state,
                 onProductTypeChange = onProductTypeChange,
                 onPidChange = onPidChange,
                 onRssiThresholdChange = onRssiThresholdChange,
                 onTargetCountChange = onTargetCountChange,
-                onMaxPowerColorChange = onMaxPowerColorChange,
-            )
-        }
-
-        item {
-            OperationCard(
-                state = state,
                 onStartScan = onStartScan,
                 onStopScan = onStopScan,
-                onConnectSelected = onConnectSelected,
-                onSetLightPid = onSetLightPid,
-                onSetColor = onSetColor,
-                onSetHighestPowerColor = onSetHighestPowerColor,
-                onUnbindAll = onUnbindAll,
             )
         }
-
         item {
-            Text(
-                text = "Devices (${state.devices.size})",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+            StepConnectDevices(
+                state = state,
+                onConnectSelected = onConnectSelected,
             )
         }
-
         val scanByAddress = state.scanDevices.associateBy { it.address }
         items(state.devices, key = { it.address }) { device ->
-            DeviceRow(
+            DeviceCard(
                 device = device,
                 scanDevice = scanByAddress[device.address],
                 onDeviceSelected = onDeviceSelected,
             )
         }
+        item {
+            StepTestLights(
+                state = state,
+                onSetLightPid = onSetLightPid,
+                onSetColor = onSetColor,
+                onMaxPowerColorChange = onMaxPowerColorChange,
+                onSetHighestPowerColor = onSetHighestPowerColor,
+            )
+        }
+        item {
+            StepUnbind(
+                state = state,
+                onUnbindAll = onUnbindAll,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeaderCard(state: FactoryUiState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B57D0)),
+        shape = RoundedCornerShape(22.dp),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("工厂测试工具", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("按 1-2-3-4 步操作：先连接，再测试，最后解绑", color = Color(0xFFE8F0FE))
+            Surface(color = Color.White.copy(alpha = 0.16f), shape = RoundedCornerShape(14.dp)) {
+                Text(
+                    text = state.statusMessage,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
     }
 }
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun SettingsCard(
+private fun StepProductAndScan(
     state: FactoryUiState,
     onProductTypeChange: (String) -> Unit,
     onPidChange: (Int) -> Unit,
     onRssiThresholdChange: (Int) -> Unit,
     onTargetCountChange: (Int) -> Unit,
-    onMaxPowerColorChange: (Int) -> Unit,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit,
 ) {
     val product = ProductCatalog.productTypes.firstOrNull { it.devName == state.settings.productDevName }
+    StepCard(
+        number = "1",
+        title = "选择产品，扫描附近设备",
+        hint = "设备越近，信号越强。系统会自动勾选信号好的设备。",
+    ) {
+        Text("产品类型", fontWeight = FontWeight.SemiBold)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ProductCatalog.productTypes.forEach { type ->
+                FilterChip(
+                    selected = type.devName == state.settings.productDevName,
+                    onClick = { onProductTypeChange(type.devName) },
+                    label = { Text(type.displayName) },
+                )
+            }
+        }
+        Text("产品型号", fontWeight = FontWeight.SemiBold)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            product?.pidOptions.orEmpty().forEach { option ->
+                FilterChip(
+                    selected = option.pid == state.settings.pid,
+                    onClick = { onPidChange(option.pid) },
+                    label = { Text("${option.displayName}（${option.pid}）") },
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(
+                value = state.settings.rssiThreshold.toString(),
+                onValueChange = { it.toIntOrNull()?.let(onRssiThresholdChange) },
+                label = { Text("信号阈值") },
+                supportingText = { Text("数值越大，要求设备越近") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = state.settings.targetDeviceCount.toString(),
+                onValueChange = { it.toIntOrNull()?.let(onTargetCountChange) },
+                label = { Text("目标数量") },
+                supportingText = { Text("本次要连几台") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(onClick = onStartScan, enabled = !state.isScanning && !state.isBusy) { Text("开始扫描") }
+            OutlinedButton(onClick = onStopScan, enabled = state.isScanning && !state.isBusy) { Text("停止扫描") }
+        }
+    }
+}
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Product Type / PID", style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProductCatalog.productTypes.forEach { type ->
-                    FilterChip(
-                        selected = type.devName == state.settings.productDevName,
-                        onClick = { onProductTypeChange(type.devName) },
-                        label = { Text(type.displayName) },
-                    )
-                }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                product?.pidOptions.orEmpty().forEach { option ->
-                    FilterChip(
-                        selected = option.pid == state.settings.pid,
-                        onClick = { onPidChange(option.pid) },
-                        label = { Text("${option.displayName} (${option.pid})") },
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = state.settings.rssiThreshold.toString(),
-                    onValueChange = { it.toIntOrNull()?.let(onRssiThresholdChange) },
-                    label = { Text("RSSI threshold") },
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedTextField(
-                    value = state.settings.targetDeviceCount.toString(),
-                    onValueChange = { it.toIntOrNull()?.let(onTargetCountChange) },
-                    label = { Text("Target count") },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Text("Max color: #${state.settings.maxPowerColor.toString(16).padStart(6, '0')}, brightness: ${state.settings.maxBrightness}")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FACTORY_COLOR_CHOICES.forEach { choice ->
-                    FilterChip(
-                        selected = state.settings.maxPowerColor == choice.rgb,
-                        onClick = { onMaxPowerColorChange(choice.rgb) },
-                        label = { Text("最高亮度${choice.label}") },
-                    )
-                }
-            }
+@Composable
+private fun StepConnectDevices(
+    state: FactoryUiState,
+    onConnectSelected: () -> Unit,
+) {
+    StepCard(
+        number = "2",
+        title = "确认勾选设备，点击连接",
+        hint = "系统已按信号强弱排序。只连接打勾的设备，没打勾的不会操作。",
+    ) {
+        StatusChips(state)
+        Button(
+            onClick = onConnectSelected,
+            enabled = state.selectedCount > 0 && !state.isBusy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("连接勾选设备") }
+        if (state.devices.isEmpty()) {
+            EmptyDevicesHint()
         }
     }
 }
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun OperationCard(
+private fun StepTestLights(
     state: FactoryUiState,
-    onStartScan: () -> Unit,
-    onStopScan: () -> Unit,
-    onConnectSelected: () -> Unit,
     onSetLightPid: () -> Unit,
     onSetColor: (Int) -> Unit,
+    onMaxPowerColorChange: (Int) -> Unit,
     onSetHighestPowerColor: () -> Unit,
-    onUnbindAll: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("Flow", style = MaterialTheme.typography.titleMedium)
-            Text("Selected: ${state.selectedCount} / target ${state.settings.targetDeviceCount}")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onStartScan, enabled = !state.isScanning && !state.isBusy) { Text("Scan") }
-                OutlinedButton(onClick = onStopScan, enabled = state.isScanning && !state.isBusy) { Text("Stop") }
-                Button(onClick = onConnectSelected, enabled = state.selectedCount > 0 && !state.isBusy) { Text("Batch connect") }
-                Button(onClick = onSetLightPid, enabled = state.selectedCount > 0 && !state.isBusy) { Text("设置 PID") }
-                FACTORY_COLOR_CHOICES.forEach { choice ->
-                    Button(onClick = { onSetColor(choice.rgb) }, enabled = state.selectedCount > 0 && !state.isBusy) { Text("设灯${choice.label}") }
+    val canControl = state.connectedCount > 0 && !state.isBusy
+    StepCard(
+        number = "3",
+        title = "测试灯光颜色",
+        hint = if (state.connectedCount > 0) "设备已连接，可以开始测试灯光。" else "请先完成第 2 步连接设备，否则这里不能操作。",
+    ) {
+        Button(onClick = onSetLightPid, enabled = canControl, modifier = Modifier.fillMaxWidth()) { Text("写入产品型号") }
+        Text("普通设灯", fontWeight = FontWeight.SemiBold)
+        ColorButtonRow(enabled = canControl, prefix = "设灯", onColorClick = onSetColor)
+        Text("最高亮度颜色", fontWeight = FontWeight.SemiBold)
+        ColorButtonRow(enabled = canControl, prefix = "选择", onColorClick = onMaxPowerColorChange)
+        Text("当前最高亮度颜色：${colorName(state.settings.maxPowerColor)}")
+        Button(onClick = onSetHighestPowerColor, enabled = canControl, modifier = Modifier.fillMaxWidth()) { Text("测试最高亮度") }
+    }
+}
+
+@Composable
+private fun StepUnbind(state: FactoryUiState, onUnbindAll: () -> Unit) {
+    StepCard(
+        number = "4",
+        title = "测试完成，一键解绑",
+        hint = "解绑后设备会从 App 删除，方便下一批继续测试。",
+    ) {
+        OutlinedButton(
+            onClick = onUnbindAll,
+            enabled = state.connectedCount > 0 && !state.isBusy,
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("一键解绑删除") }
+    }
+}
+
+@Composable
+private fun StepCard(
+    number: String,
+    title: String,
+    hint: String,
+    content: @Composable Column.() -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier.size(34.dp).clip(CircleShape).background(Color(0xFF0B57D0)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(number, color = Color.White, fontWeight = FontWeight.Bold)
                 }
-                Button(onClick = onSetHighestPowerColor, enabled = state.selectedCount > 0 && !state.isBusy) { Text("Highest brightness color") }
-                OutlinedButton(onClick = onUnbindAll, enabled = state.connectedCount > 0 && !state.isBusy) { Text("一键解绑删除") }
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(hint, color = Color(0xFF5F6368), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun StatusChips(state: FactoryUiState) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AssistChip(onClick = {}, label = { Text("已发现 ${state.devices.size} 台") })
+        AssistChip(onClick = {}, label = { Text("已勾选 ${state.selectedCount} 台") })
+        AssistChip(onClick = {}, label = { Text("已连接 ${state.connectedCount} 台") })
+    }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun ColorButtonRow(enabled: Boolean, prefix: String, onColorClick: (Int) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FACTORY_COLOR_CHOICES.forEach { choice ->
+            OutlinedButton(onClick = { onColorClick(choice.rgb) }, enabled = enabled) {
+                Box(Modifier.size(14.dp).clip(CircleShape).background(choice.color))
+                Spacer(Modifier.size(6.dp))
+                Text("$prefix${choice.label}")
             }
         }
     }
 }
 
 @Composable
-private fun DeviceRow(
+private fun EmptyDevicesHint() {
+    Surface(color = Color(0xFFFFF7E0), shape = RoundedCornerShape(14.dp)) {
+        Text(
+            text = "还没有设备。请先点击“开始扫描”，把要测试的设备靠近手机。",
+            modifier = Modifier.padding(12.dp),
+            color = Color(0xFF7A4D00),
+        )
+    }
+}
+
+@Composable
+private fun DeviceCard(
     device: FactoryDevice,
     scanDevice: ScanDevice?,
     onDeviceSelected: (String, Boolean) -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val selected = scanDevice?.selected ?: false
+    val stateText = deviceStateText(device.state)
+    val stateColor = deviceStateColor(device.state)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = if (selected) Color(0xFFEAF2FF) else Color.White),
+        shape = RoundedCornerShape(18.dp),
+    ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Checkbox(
-                checked = scanDevice?.selected ?: false,
-                onCheckedChange = { onDeviceSelected(device.address, it) },
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(device.name ?: "Unknown", fontWeight = FontWeight.SemiBold)
-                Text(device.address)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("RSSI ${device.rssi} dBm, state ${device.state}")
-                if (device.did != null || device.pid != null || device.firmwareVersion != null) {
-                    Text("DID ${device.did ?: "-"}, PID ${device.pid ?: "-"}, FW ${device.firmwareVersion ?: "-"}")
+            Checkbox(checked = selected, onCheckedChange = { onDeviceSelected(device.address, it) })
+            Text(deviceStateIcon(device.state), style = MaterialTheme.typography.headlineMedium)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(device.name ?: "灯带设备", fontWeight = FontWeight.Bold)
+                    Surface(color = stateColor.copy(alpha = 0.14f), shape = RoundedCornerShape(12.dp)) {
+                        Text(stateText, color = stateColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), style = MaterialTheme.typography.labelMedium)
+                    }
                 }
-                if (device.lastResult.isNotBlank()) Text("Last: ${device.lastResult}")
-                if (device.lastError.isNotBlank()) Text("Error: ${device.lastError}", color = MaterialTheme.colorScheme.error)
+                Text("信号 ${device.rssi} dBm  ·  地址 ${device.address}", color = Color(0xFF5F6368))
+                if (device.did != null || device.pid != null || device.firmwareVersion != null) {
+                    Text("DID ${device.did ?: "-"}  ·  PID ${device.pid ?: "-"}  ·  固件 ${device.firmwareVersion ?: "-"}", color = Color(0xFF5F6368))
+                }
+                if (device.lastResult.isNotBlank()) Text("上次结果：${device.lastResult}")
+                if (device.lastError.isNotBlank()) Text("错误原因：${device.lastError}", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
+
+private fun deviceStateText(state: DeviceConnectionState): String = when (state) {
+    DeviceConnectionState.Discovered -> "待连接"
+    DeviceConnectionState.Connecting -> "连接中"
+    DeviceConnectionState.Connected -> "已连接"
+    DeviceConnectionState.Ready -> "测试成功"
+    DeviceConnectionState.Failed -> "失败"
+    DeviceConnectionState.Unbound -> "已解绑"
+}
+
+private fun deviceStateIcon(state: DeviceConnectionState): String = when (state) {
+    DeviceConnectionState.Discovered -> "📱"
+    DeviceConnectionState.Connecting -> "🔄"
+    DeviceConnectionState.Connected -> "✅"
+    DeviceConnectionState.Ready -> "✅"
+    DeviceConnectionState.Failed -> "⚠️"
+    DeviceConnectionState.Unbound -> "🧹"
+}
+
+private fun deviceStateColor(state: DeviceConnectionState): Color = when (state) {
+    DeviceConnectionState.Discovered -> Color(0xFF5F6368)
+    DeviceConnectionState.Connecting -> Color(0xFFB06000)
+    DeviceConnectionState.Connected -> Color(0xFF188038)
+    DeviceConnectionState.Ready -> Color(0xFF188038)
+    DeviceConnectionState.Failed -> Color(0xFFD93025)
+    DeviceConnectionState.Unbound -> Color(0xFF5F6368)
+}
+
+private fun colorName(rgb: Int): String = FACTORY_COLOR_CHOICES.firstOrNull { it.rgb == rgb }?.label ?: "自定义颜色"
