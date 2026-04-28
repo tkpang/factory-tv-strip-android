@@ -40,9 +40,11 @@ Workflow 会在 `ubuntu-latest` 上执行以下步骤：
 3. 通过 `gradle/actions/setup-gradle@v4` 安装 Gradle 8.10.2。
 4. 运行 `gradle wrapper --gradle-version 8.10.2`。
 5. 运行 `./gradlew test assembleDebug`。
-6. 上传 Debug APK artifact，名称为 `factory-tv-strip-debug-apk`，路径匹配 `app/build/outputs/apk/debug/*.apk`。
+6. 发布 Debug APK 到 GitHub Release `debug-latest`。
 
 注意：workflow 不要求本地提交 wrapper 文件，而是在 GitHub runner 上生成后使用 `./gradlew` 完成测试和 Debug APK 构建。
+
+APK 下载位置：GitHub 仓库的 Releases 页面，选择 `debug-latest`，下载其中的 `app-debug.apk`。
 
 ## 本地验证
 
