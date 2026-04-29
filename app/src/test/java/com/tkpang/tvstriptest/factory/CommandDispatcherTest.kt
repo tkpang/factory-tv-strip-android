@@ -37,10 +37,10 @@ class CommandDispatcherTest {
         assertTrue(dispatcher.setColor(device(), FactorySettings(pid = 111), rgb = 0xFF0000).success)
 
         assertEquals(1, sessions.size)
-        assertEquals(listOf("connect", "write", "write"), sessions.single().calls)
+        assertEquals(listOf("connect", "write", "write", "write", "write"), sessions.single().calls)
 
         assertTrue(dispatcher.unbindAndDelete(device()).success)
-        assertEquals(listOf("connect", "write", "write", "write", "close"), sessions.single().calls)
+        assertEquals(listOf("connect", "write", "write", "write", "write", "write", "close"), sessions.single().calls)
     }
 
     @Test
