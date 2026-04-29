@@ -26,7 +26,7 @@ class DpCommandsTest {
     @Test
     fun solidGrooveCommandUsesLedCountAndRgb() {
         assertEquals(
-            "N01:P1000212abef12abef;",
+            "N01:P1000112abef;",
             DpCommands.solidColorGroove(ledCount = 2, rgb = 0x12ABEF),
         )
     }
@@ -38,9 +38,10 @@ class DpCommandsTest {
             DpCommands.solidColorGroove(ledCount = 1, rgb = 0x000000),
         )
 
-        val maxLedCommand = DpCommands.solidColorGroove(ledCount = 0xFF, rgb = 0x000000)
-        assertEquals("N01:P100ff", maxLedCommand.take("N01:P100ff".length))
-        assertEquals(';', maxLedCommand.last())
+        assertEquals(
+            "N01:P10001000000;",
+            DpCommands.solidColorGroove(ledCount = 0xFF, rgb = 0x000000),
+        )
     }
 
     @Test
@@ -97,7 +98,7 @@ class DpCommandsTest {
             listOf(
                 "{\"d161\":1}",
                 "{\"d162\":1000}",
-                "{\"d160\":\"N01:P1000212abef12abef;\"}",
+                "{\"d160\":\"N01:P1000112abef;\"}",
             ),
             DpCommands.highestPowerSequence(ledCount = 2, rgb = 0x12ABEF, brightness = 1200),
         )

@@ -17,8 +17,7 @@ object DpCommands {
         require(ledCount in 1..MAX_GROOVE_LED_COUNT) { "Invalid LED count: $ledCount" }
 
         val color = rgbHex(rgb)
-        // Groove P100 stores the LED count as a two-digit hex field.
-        return "N01:P100${ledCount.toString(16).padStart(2, '0')}${color.repeat(ledCount)};"
+        return "N01:P10001$color;"
     }
 
     fun highestPowerSequence(ledCount: Int, rgb: Int, brightness: Int): List<String> = listOf(

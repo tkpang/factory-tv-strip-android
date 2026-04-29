@@ -70,23 +70,30 @@ class CommandDispatcherTest {
             listOf(
                 "{\"d161\":1}\u0000",
                 "{\"d162\":1000}\u0000",
-                "{\"d160\":\"N01:P1002412abef",
+                "{\"d160\":\"N01:P1000112abef;\"}\u0000",
             ),
-            listOf(payloads[0], payloads[1], payloads[2].take("{\"d160\":\"N01:P1002412abef".length)),
+            payloads,
         )
     }
 
     @Test
-    fun setColorWritesOnlySolidGrooveCommand() = runTest {
+    fun setColorTurnsOnLightAndWritesFactorySolidColorCommand() = runTest {
         val session = RecordingSession()
         val dispatcher = PerDeviceBleDispatcher { session }
 
-        val result = dispatcher.setColor(device(), FactorySettings(pid = 111), rgb = 0xFF0000)
+        val result = dispatcher.setColor(device(), FactorySettings(pid = 111, maxBrightness = 1000), rgb = 0xFF0000)
 
         assertTrue(result.success)
-        val message = LeMessageCodec.decode(session.writes.single())
-        assertEquals(LeConstants.LE_CMD_DP_PRP_SET, message.cmd)
-        assertEquals("{\"d160\":\"N01:P10024ff0000", message.payload.decodeToString().take("{\"d160\":\"N01:P10024ff0000".length))
+        val messages = session.writes.map { LeMessageCodec.decode(it) }
+        assertEquals(listOf(LeConstants.LE_CMD_DP_PRP_SET, LeConstants.LE_CMD_DP_PRP_SET, LeConstants.LE_CMD_DP_PRP_SET), messages.map { it.cmd })
+        assertEquals(
+            listOf(
+                "{\"d161\":1}\u0000",
+                "{\"d162\":1000}\u0000",
+                "{\"d160\":\"N01:P10001ff0000;\"}\u0000",
+            ),
+            messages.map { it.payload.decodeToString() },
+        )
     }
 
     @Test

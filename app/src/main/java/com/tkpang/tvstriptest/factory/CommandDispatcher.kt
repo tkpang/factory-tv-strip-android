@@ -93,7 +93,11 @@ class PerDeviceBleDispatcher(
         }
         return withSession(
             device = device,
-            commands = listOf(DpCommands.grooveHandle(DpCommands.solidColorGroove(ledCount, rgb))),
+            commands = listOf(
+                DpCommands.grooveState(true),
+                DpCommands.setMaxBrightness(settings.maxBrightness),
+                DpCommands.grooveHandle(DpCommands.solidColorGroove(ledCount, rgb)),
+            ),
             successMessage = "Color set",
         )
     }
