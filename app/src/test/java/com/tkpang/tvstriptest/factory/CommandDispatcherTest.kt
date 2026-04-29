@@ -68,8 +68,8 @@ class CommandDispatcherTest {
         val payloads = session.writes.map { LeMessageCodec.decode(it).payload.decodeToString() }
         assertEquals(
             listOf(
-                "{\"d161\":1}",
-                "{\"d162\":1000}",
+                "{\"d161\":1}\u0000",
+                "{\"d162\":1000}\u0000",
                 "{\"d160\":\"N01:P1002412abef",
             ),
             listOf(payloads[0], payloads[1], payloads[2].take("{\"d160\":\"N01:P1002412abef".length)),
