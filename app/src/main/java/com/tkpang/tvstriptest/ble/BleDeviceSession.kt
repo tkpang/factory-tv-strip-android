@@ -221,13 +221,16 @@ class BleDeviceSession(
             payload = LeMessageCodec.bondPayload(),
             expectedResponseCmd = LeConstants.LE_CMD_BONDR,
         ) ?: return false
-        return responseCode(bond.payload) == 0
+        return LeMessageCodec.responseCode(bond.payload) in setOf(
+            LeConstants.LE_CODE_SUCCESS,
+            LeConstants.LE_CODE_BONDED,
+        )
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     suspend fun transact(cmd: Int, sn: Int, payload: ByteArray, expectedResponseCmd: Int): Boolean {
         val response = transactMessage(cmd, sn, payload, expectedResponseCmd) ?: return false
-        return responseCode(response.payload) == 0
+        return LeMessageCodec.responseCode(response.payload) == LeConstants.LE_CODE_SUCCESS
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -314,14 +317,6 @@ class BleDeviceSession(
             pendingResponses[ResponseKey(message.cmd, message.sn)]
         }
         completion?.complete(message)
-    }
-
-    private fun responseCode(payload: ByteArray): Int {
-        if (payload.size < 4) return -1
-        return ((payload[0].toInt() and 0xFF) shl 24) or
-            ((payload[1].toInt() and 0xFF) shl 16) or
-            ((payload[2].toInt() and 0xFF) shl 8) or
-            (payload[3].toInt() and 0xFF)
     }
 
     private fun nextSn(): Int = (randomSource.nextInt(0xFFFE) + 1) and 0xFFFF

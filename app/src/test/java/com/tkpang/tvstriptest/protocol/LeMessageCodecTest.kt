@@ -42,6 +42,11 @@ class LeMessageCodecTest {
     }
 
     @Test
+    fun parsesBigEndianResponseCode() {
+        assertEquals(LeConstants.LE_CODE_BONDED, LeMessageCodec.responseCode(byteArrayOf(0, 0, 0, 0x0a)))
+    }
+
+    @Test
     fun rejectsPayloadsLongerThanUint16() {
         assertThrows(IllegalArgumentException::class.java) {
             LeMessageCodec.encode(

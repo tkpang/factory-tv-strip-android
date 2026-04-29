@@ -22,7 +22,7 @@ class CommandDispatcherTest {
         assertEquals(listOf("connect", "write"), session.calls)
         val message = LeMessageCodec.decode(session.writes.single())
         assertEquals(LeConstants.LE_CMD_DP_PRP_SET, message.cmd)
-        assertEquals("{\"d158\":144}", message.payload.decodeToString())
+        assertEquals("{\"d158\":144}\u0000", message.payload.decodeToString())
     }
 
     @Test
@@ -87,6 +87,18 @@ class CommandDispatcherTest {
         val message = LeMessageCodec.decode(session.writes.single())
         assertEquals(LeConstants.LE_CMD_DP_PRP_SET, message.cmd)
         assertEquals("{\"d160\":\"N01:P10024ff0000", message.payload.decodeToString().take("{\"d160\":\"N01:P10024ff0000".length))
+    }
+
+    @Test
+    fun dpSetPayloadsAreNullTerminatedForFirmwareStringParser() = runTest {
+        val session = RecordingSession()
+        val dispatcher = PerDeviceBleDispatcher { session }
+
+        val result = dispatcher.setPid(device(), FactorySettings(pid = 144))
+
+        assertTrue(result.success)
+        val message = LeMessageCodec.decode(session.writes.single())
+        assertEquals(0, message.payload.last().toInt())
     }
 
     @Test

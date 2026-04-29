@@ -177,7 +177,7 @@ class PerDeviceBleDispatcher(
 
     private fun encodeDpCommand(command: String): ByteArray = encode(
         cmd = LeConstants.LE_CMD_DP_PRP_SET,
-        payload = command.encodeToByteArray(),
+        payload = command.encodeToByteArray() + byteArrayOf(0),
     )
 
     private fun encode(cmd: Int, payload: ByteArray): ByteArray = LeMessageCodec.encode(

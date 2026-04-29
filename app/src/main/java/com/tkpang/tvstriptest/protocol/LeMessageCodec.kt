@@ -77,6 +77,11 @@ object LeMessageCodec {
         .putInt(0)
         .array()
 
+    fun responseCode(payload: ByteArray): Int {
+        if (payload.size < 4) return -1
+        return ByteBuffer.wrap(payload, 0, 4).order(ByteOrder.BIG_ENDIAN).int
+    }
+
     fun parseDevInfo(payload: ByteArray): BleDeviceInfo {
         require(payload.size >= DEV_INFO_FIXED_LEN) { "DEV_INFO_GETR too short: ${payload.size}" }
         val buffer = ByteBuffer.wrap(payload).order(ByteOrder.BIG_ENDIAN)

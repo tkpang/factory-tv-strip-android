@@ -18,6 +18,9 @@ object LeConstants {
     const val LE_CMD_DP_PRP_SETR = 0x1101
     const val LE_CMD_DEV_INFO_GET_MARK = 0x5a5aa5a5
 
+    const val LE_CODE_SUCCESS = 0x0000
+    const val LE_CODE_BONDED = 0x000a
+
     const val HDR_VER = 0x5a
     const val CTRL_NONE = 0x50
 }
