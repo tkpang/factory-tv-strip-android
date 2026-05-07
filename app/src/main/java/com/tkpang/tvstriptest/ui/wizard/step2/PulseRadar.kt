@@ -149,16 +149,21 @@ private fun DeviceBlip(
     val (xFrac, yFrac) = positionForDevice(device)
     val xDp = (xFrac * radarRadiusPx).dp
     val yDp = (yFrac * radarRadiusPx).dp
-    val label = "${device.address.takeLast(5).replace(":", "")}${chipSuffix(state)}"
+    // chip 标签：MAC 后 5 位 + PID（解析失败显示 ?）+ 状态后缀
+    val pidLabel = device.pid?.toString() ?: "?"
+    val label = "${device.address.takeLast(5).replace(":", "")} · $pidLabel${chipSuffix(state)}"
     val alpha = if (inThreshold) 1f else 0.55f
 
+    val baseModifier = Modifier
+        .offset(x = xDp, y = yDp)
+        .alpha(alpha)
+        .clip(CircleShape)
+        .background(bg, CircleShape)
+    // 阈值外（红点）的设备不可点击，避免远距离误连
+    val clickModifier = if (inThreshold) baseModifier.clickable(onClick = onClick) else baseModifier
+
     Box(
-        Modifier
-            .offset(x = xDp, y = yDp)
-            .alpha(alpha)
-            .clip(CircleShape)
-            .background(bg, CircleShape)
-            .clickable(onClick = onClick)
+        modifier = clickModifier
             // 加大触控热区：水平 14、纵向 8 dp，比原来 10/4 更易点中
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

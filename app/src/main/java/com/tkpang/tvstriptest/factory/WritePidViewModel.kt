@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tkpang.tvstriptest.ble.BleScanner
 import com.tkpang.tvstriptest.model.FactoryDevice
+import com.tkpang.tvstriptest.model.PidFilter
 import com.tkpang.tvstriptest.model.ScanDevice
 import com.tkpang.tvstriptest.model.SensitivityLevel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,16 +49,26 @@ class WritePidViewModel(
     private val _sensitivity = MutableStateFlow(SensitivityLevel.NEAR)
     val sensitivity: StateFlow<SensitivityLevel> = _sensitivity.asStateFlow()
 
-    /** 雷达展示的设备：所有扫到的（不过滤绑定状态，因为很多产线设备已经被绑过，
-     *  我们的写 PID 流程末尾会主动 unbond）*/
+    private val _onlyUnbonded = MutableStateFlow(false)
+    val onlyUnbonded: StateFlow<Boolean> = _onlyUnbonded.asStateFlow()
+
+    private val _displayPidFilter = MutableStateFlow<PidFilter>(PidFilter.Any)
+    val displayPidFilter: StateFlow<PidFilter> = _displayPidFilter.asStateFlow()
+
+    /** 雷达展示的设备：按用户设置的「显示 PID」筛选 + 是否只看未绑定 */
     val devices: StateFlow<List<ScanDevice>> = combine(
-        scanner.devices, _sensitivity,
-    ) { raw, _ -> raw }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        scanner.devices, _displayPidFilter, _onlyUnbonded,
+    ) { raw, pidFilter, onlyUnbonded ->
+        ScanFilterUseCase.apply(raw, pidFilter, onlyUnbonded)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun selectPid(pid: Int) { _selectedPid.value = pid }
 
     fun setSensitivity(level: SensitivityLevel) { _sensitivity.value = level }
+
+    fun setOnlyUnbonded(value: Boolean) { _onlyUnbonded.value = value }
+
+    fun setDisplayPidFilter(filter: PidFilter) { _displayPidFilter.value = filter }
 
     /** 选完 PID → 开始扫描，等待用户点选设备 */
     fun startScanning() {

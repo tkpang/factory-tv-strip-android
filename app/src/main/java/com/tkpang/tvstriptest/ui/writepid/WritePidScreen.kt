@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -65,12 +66,21 @@ fun WritePidScreen(
                 onSelect = vm::selectPid,
                 onStart = vm::startScanning,
             )
-            is WritePidViewModel.Phase.Scanning -> ScanningSection(
-                devices = devices,
-                sensitivity = sensitivity,
-                selectedPid = pid,
-                onPick = vm::pickDeviceAndWrite,
-            )
+            is WritePidViewModel.Phase.Scanning -> {
+                val onlyUnbonded by vm.onlyUnbonded.collectAsStateWithLifecycle()
+                val displayPidFilter by vm.displayPidFilter.collectAsStateWithLifecycle()
+                ScanningSection(
+                    devices = devices,
+                    sensitivity = sensitivity,
+                    selectedPid = pid,
+                    onlyUnbonded = onlyUnbonded,
+                    displayPidFilter = displayPidFilter,
+                    onPick = vm::pickDeviceAndWrite,
+                    onSensitivityChange = vm::setSensitivity,
+                    onOnlyUnbondedChange = vm::setOnlyUnbonded,
+                    onDisplayPidFilterChange = vm::setDisplayPidFilter,
+                )
+            }
             is WritePidViewModel.Phase.Writing -> WritingSection(
                 address = p.address,
                 pid = p.pid,
@@ -153,13 +163,30 @@ private fun ScanningSection(
     devices: List<ScanDevice>,
     sensitivity: SensitivityLevel,
     selectedPid: Int?,
+    onlyUnbonded: Boolean,
+    displayPidFilter: com.tkpang.tvstriptest.model.PidFilter,
     onPick: (String) -> Unit,
+    onSensitivityChange: (SensitivityLevel) -> Unit,
+    onOnlyUnbondedChange: (Boolean) -> Unit,
+    onDisplayPidFilterChange: (com.tkpang.tvstriptest.model.PidFilter) -> Unit,
 ) {
+    var sheetOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
     Text(
-        "把要写入的 1 台灯带凑近，点击雷达上的设备开始写入（PID = $selectedPid）",
+        "点击绿色设备开始写入（目标 PID = $selectedPid）",
         style = MaterialTheme.typography.labelMedium,
         color = Color(0xFF475569),
     )
+
+    // 筛选条：显示 PID + 只看未绑定 + ⚙ 灵敏度
+    WritePidFilterBar(
+        displayPidFilter = displayPidFilter,
+        onlyUnbonded = onlyUnbonded,
+        onDisplayPidFilterChange = onDisplayPidFilterChange,
+        onOnlyUnbondedChange = onOnlyUnbondedChange,
+        onOpenSensitivity = { sheetOpen = true },
+    )
+
     Box(
         modifier = Modifier.fillMaxWidth().height(360.dp),
         contentAlignment = Alignment.Center,
@@ -185,6 +212,81 @@ private fun ScanningSection(
                 pairingStates = emptyMap(),
                 onDeviceClick = onPick,
             )
+        }
+    }
+
+    if (sheetOpen) {
+        com.tkpang.tvstriptest.ui.wizard.step2.SensitivitySheet(
+            current = sensitivity,
+            onChange = onSensitivityChange,
+            onDismiss = { sheetOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun WritePidFilterBar(
+    displayPidFilter: com.tkpang.tvstriptest.model.PidFilter,
+    onlyUnbonded: Boolean,
+    onDisplayPidFilterChange: (com.tkpang.tvstriptest.model.PidFilter) -> Unit,
+    onOnlyUnbondedChange: (Boolean) -> Unit,
+    onOpenSensitivity: () -> Unit,
+) {
+    val pidOptions = ProductCatalog.productTypes.first { it.devName == "STV1" }.pidOptions
+    var pidMenuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val pidLabel = when (val f = displayPidFilter) {
+        is com.tkpang.tvstriptest.model.PidFilter.Any -> "全部 PID"
+        is com.tkpang.tvstriptest.model.PidFilter.Specific -> "PID ${f.pid}"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box {
+            androidx.compose.material3.OutlinedButton(onClick = { pidMenuOpen = true }) {
+                Text(pidLabel)
+            }
+            androidx.compose.material3.DropdownMenu(
+                expanded = pidMenuOpen,
+                onDismissRequest = { pidMenuOpen = false },
+            ) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text("全部 PID") },
+                    onClick = {
+                        onDisplayPidFilterChange(com.tkpang.tvstriptest.model.PidFilter.Any)
+                        pidMenuOpen = false
+                    },
+                )
+                pidOptions.forEach { opt ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("${opt.displayName}（${opt.pid}）") },
+                        onClick = {
+                            onDisplayPidFilterChange(com.tkpang.tvstriptest.model.PidFilter.Specific(opt.pid))
+                            pidMenuOpen = false
+                        },
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Text(
+            "只看未绑定",
+            style = MaterialTheme.typography.labelMedium,
+            color = Color(0xFF475569),
+        )
+        Spacer(Modifier.width(4.dp))
+        androidx.compose.material3.Switch(
+            checked = onlyUnbonded,
+            onCheckedChange = onOnlyUnbondedChange,
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        androidx.compose.material3.IconButton(onClick = onOpenSensitivity) {
+            Text("⚙", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

@@ -107,9 +107,9 @@ fun Step2ScanScreen(
 
         Text(
             text = if (state.pairedDevices.isEmpty())
-                "把灯带凑近手机，进入蓝圈自动配对"
+                "点击雷达上绿色设备开始连接"
             else
-                "已配 ${state.pairedDevices.size} 台 · 把下一台凑近",
+                "已配 ${state.pairedDevices.size} 台 · 继续点击下一台",
             style = MaterialTheme.typography.labelMedium,
             color = Color(0xFF64748B),
             modifier = Modifier.fillMaxWidth(),
