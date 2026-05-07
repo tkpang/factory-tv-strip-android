@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Step 1 / 3 / 4 页面布局 · factory-tv-strip-android</title>
+<style>
+body { background:#f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+       margin:0; padding: 24px; color:#0f172a;}
+h2 { margin: 0 0 6px;}
+.subtitle { color:#475569; margin: 0 0 24px; max-width: 720px;}
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 24px;}
+.col { background: white; border-radius: 12px; padding: 16px;
+       box-shadow: 0 2px 6px rgba(0,0,0,.08);}
+.col h3 { margin: 12px 0 4px; font-size: 16px;}
+.col .desc { color:#475569; font-size: 13px; margin: 0 0 6px;}
+
+.phone { width: 100%; max-width: 290px; margin: 0 auto;
+         background: #0f172a; border-radius: 22px; padding: 6px;
+         box-shadow: 0 6px 18px rgba(0,0,0,.35);}
+.phone-screen { background: #f8fafc; border-radius: 16px; height: 540px;
+                display: flex; flex-direction: column; overflow: hidden;
+                font-size: 11px; color: #1e293b;}
+.ph-header { padding: 12px 14px; background: white;
+             border-bottom: 1px solid #e5e7eb;}
+.ph-title { font-weight: 700; font-size: 14px;}
+.ph-sub { color: #64748b; font-size: 10px; margin-top: 2px;}
+.progress { display: flex; gap: 4px; margin-top: 8px;}
+.progress .seg { flex: 1; height: 3px; border-radius: 2px; background: #cbd5e1;}
+.progress .seg.done { background: #22c55e;}
+.progress .seg.now { background: #2563eb;}
+
+.body { flex: 1; padding: 12px; display:flex; flex-direction:column;
+        gap: 12px; overflow-y: auto;}
+.section-label { font-size: 11px; font-weight: 700; color:#475569;
+                 letter-spacing: .3px; text-transform: uppercase;}
+
+.foot { display:flex; gap:6px; padding: 10px;
+        border-top: 1px solid #e5e7eb; background: white;}
+.btn { flex:1; padding: 10px; border-radius: 10px; text-align:center;
+       font-size: 12px; font-weight: 600;}
+.btn-primary { background: #2563eb; color: white;}
+.btn-ghost { background: #f1f5f9; color: #475569;}
+.btn-disabled { background: #e5e7eb; color: #94a3b8;}
+
+/* === Step 1 ============================================ */
+.product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;}
+.product-card { background: white; border: 2px solid #e5e7eb;
+                border-radius: 10px; padding: 12px 8px;
+                text-align: center; position: relative;}
+.product-card .name { font-weight: 700; font-size: 13px; color:#0f172a;}
+.product-card .tag { font-size: 9px; color:#64748b; margin-top: 2px;}
+.product-card.selected { border-color: #2563eb; background: #eff6ff;}
+.product-card.selected .check { position:absolute; right: 6px; top: 6px;
+                                background: #2563eb; color:white;
+                                width: 16px; height: 16px; border-radius: 50%;
+                                display:flex; align-items:center;
+                                justify-content:center; font-size: 10px;}
+.product-card.disabled { opacity: .4;}
+
+.pid-list { background: white; border-radius: 10px; overflow: hidden;
+            border: 1px solid #e5e7eb;}
+.pid-row { display:flex; align-items:center; padding: 10px 12px;
+           gap: 10px; border-bottom: 1px solid #f1f5f9;}
+.pid-row:last-child { border-bottom: none;}
+.radio { width: 14px; height: 14px; border: 2px solid #cbd5e1;
+         border-radius: 50%;}
+.radio.checked { border-color: #2563eb; background: white;
+                 box-shadow: inset 0 0 0 3px #2563eb;}
+.pid-name { flex:1; font-size: 12px;}
+.pid-num { color:#64748b; font-size: 10px;}
+
+/* === Step 3 ============================================ */
+.status-bar { background: #ecfdf5; border: 1px solid #86efac;
+              border-radius: 8px; padding: 8px 10px; font-size: 11px;
+              color:#065f46; display:flex; justify-content:space-between;}
+
+.tabs-segmented { display: flex; background: #e2e8f0;
+                  border-radius: 999px; padding: 3px;}
+.tabs-segmented .seg { flex: 1; padding: 6px 8px; text-align:center;
+                       border-radius: 999px; font-size: 11px;
+                       font-weight: 600; color: #475569;}
+.tabs-segmented .seg.active { background: white; color:#0f172a;
+                              box-shadow: 0 1px 3px rgba(0,0,0,.1);}
+
+.color-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;}
+.color-btn { aspect-ratio: 1; border-radius: 50%;
+             display:flex; align-items:center; justify-content:center;
+             font-weight: 700; color:white; font-size: 13px;
+             box-shadow: 0 4px 10px rgba(0,0,0,.15);}
+.c-red { background: #ef4444;}
+.c-grn { background: #22c55e;}
+.c-blu { background: #3b82f6;}
+.c-wht { background: #f8fafc; color:#0f172a;
+         border: 1px solid #e5e7eb;}
+.c-blk { background: #1e293b;}
+
+.feedback { background: white; border: 1px solid #e5e7eb;
+            border-radius: 8px; padding: 10px; font-size: 11px;}
+.feedback .ok { color:#15803d; font-weight: 600;}
+.feedback .fail { color:#dc2626; margin-top: 4px;}
+
+/* === Step 4 ============================================ */
+.unbind-body { flex: 1; display:flex; flex-direction:column;
+               align-items:center; justify-content:center; padding: 20px; gap: 14px;
+               text-align: center;}
+.unbind-icon { width: 70px; height: 70px; border-radius: 50%;
+               background: #fef2f2; display:flex; align-items:center;
+               justify-content:center; font-size: 30px; color:#dc2626;}
+.unbind-msg { font-size: 13px; line-height: 1.5; color:#0f172a;}
+.unbind-cta { background: #dc2626; color:white; padding: 14px 22px;
+              border-radius: 10px; font-weight: 700; font-size: 14px;
+              width: 80%; text-align: center;
+              box-shadow: 0 4px 10px rgba(220,38,38,.3);}
+.unbind-hint { font-size: 10px; color:#94a3b8; line-height: 1.5;}
+
+</style>
+</head>
+<body>
+
+<h2>Step 1 / 3 / 4 页面布局</h2>
+<p class="subtitle">在每张卡里看完，整体觉得 OK 就在终端回「OK」；想调哪一项告诉我即可（产品卡形状、PID 列表样式、颜色按钮大小、解绑按钮颜色等）。</p>
+
+<div class="row">
+
+  <!-- Step 1 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">选择产品</div>
+        <div class="ph-sub">先选产品类型，再选 PID</div>
+        <div class="progress"><div class="seg now"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="body">
+        <div class="section-label">产品类型</div>
+        <div class="product-grid">
+          <div class="product-card selected">
+            <div class="check">✓</div>
+            <div class="name">STV1</div>
+            <div class="tag">已配置</div>
+          </div>
+          <div class="product-card disabled">
+            <div class="name">S2</div>
+            <div class="tag">暂未支持</div>
+          </div>
+          <div class="product-card disabled">
+            <div class="name">SW1</div>
+            <div class="tag">暂未支持</div>
+          </div>
+          <div class="product-card disabled">
+            <div class="name">S1_V2</div>
+            <div class="tag">暂未支持</div>
+          </div>
+        </div>
+
+        <div class="section-label">选择 PID</div>
+        <div class="pid-list">
+          <div class="pid-row"><div class="radio checked"></div><div class="pid-name">Online 3M</div><div class="pid-num">111</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-name">Online 5M</div><div class="pid-num">112</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-name">Online 2M</div><div class="pid-num">158</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-name">Offline 3M</div><div class="pid-num">143</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-name">Offline 5M</div><div class="pid-num">144</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-name">Offline 3M 高密</div><div class="pid-num">145</div></div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-disabled">← 上一步</div>
+        <div class="btn btn-primary">下一步 →</div>
+      </div>
+    </div></div>
+    <h3>Step 1 · 选产品 / PID</h3>
+    <p class="desc">2×2 产品卡（仅 STV1 可选），下方 6 项 PID radio。下一步在选完 PID 后才高亮。</p>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">颜色测试</div>
+        <div class="ph-sub">点颜色，全部设备同时变</div>
+        <div class="progress"><div class="seg done"></div><div class="seg done"></div><div class="seg now"></div><div class="seg"></div></div>
+      </div>
+      <div class="body">
+        <div class="status-bar"><span>已配 5 台</span><span>全部 Ready ✓</span></div>
+
+        <div class="tabs-segmented">
+          <div class="seg active">普通设灯</div>
+          <div class="seg">最高亮度</div>
+        </div>
+
+        <div class="section-label">点击颜色 → 全部设备同时设</div>
+        <div class="color-grid">
+          <div class="color-btn c-red">红</div>
+          <div class="color-btn c-grn">绿</div>
+          <div class="color-btn c-blu">蓝</div>
+          <div class="color-btn c-wht">白</div>
+          <div class="color-btn c-blk">黑</div>
+        </div>
+
+        <div class="feedback">
+          <div class="ok">✓ 已下发：所有 5 台 → 红色</div>
+          <div style="color:#64748b;margin-top:2px">失败 0 台</div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">下一步 →</div>
+      </div>
+    </div></div>
+    <h3>Step 3 · 颜色测试</h3>
+    <p class="desc">普通 / 最高亮度 segmented tab，5 个大圆色块按钮。点一下批量下发，反馈条显示成功/失败。</p>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">解绑</div>
+        <div class="ph-sub">把所有测试设备一键解绑</div>
+        <div class="progress"><div class="seg done"></div><div class="seg done"></div><div class="seg done"></div><div class="seg now"></div></div>
+      </div>
+      <div class="unbind-body">
+        <div class="unbind-icon">🗑</div>
+        <div class="unbind-msg">测试完成，把这 <b>5 台</b> 设备<br>从 App 上一键解绑删除</div>
+        <div class="unbind-cta">全部解绑并删除</div>
+        <div class="unbind-hint">解绑后设备会回到出厂未配状态<br>下次扫描可以重新配</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-disabled">下一步 →</div>
+      </div>
+    </div></div>
+    <h3>Step 4 · 解绑</h3>
+    <p class="desc">一个大红按钮 + 二次确认。解绑期间按钮变进度条，完成后改成「完成 · 重新开始测试」回 Step 1。</p>
+  </div>
+
+</div>
+
+</body>
+</html>

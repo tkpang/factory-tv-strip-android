@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>启动页 + Step 1 改造版</title>
+<style>
+body { background:#f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+       margin:0; padding: 24px; color:#0f172a;}
+h2 { margin: 0 0 6px;}
+.subtitle { color:#475569; margin: 0 0 24px; max-width: 720px;}
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 24px;}
+.col { background: white; border-radius: 12px; padding: 16px;
+       box-shadow: 0 2px 6px rgba(0,0,0,.08);}
+.col h3 { margin: 12px 0 4px; font-size: 16px;}
+.col .desc { color:#475569; font-size: 13px; margin: 0;}
+
+.phone { width: 100%; max-width: 290px; margin: 0 auto;
+         background: #0f172a; border-radius: 22px; padding: 6px;
+         box-shadow: 0 6px 18px rgba(0,0,0,.35);}
+.phone-screen { background: #f8fafc; border-radius: 16px; height: 560px;
+                display: flex; flex-direction: column; overflow: hidden;
+                font-size: 11px; color: #1e293b;}
+.ph-header { padding: 12px 14px; background: white;
+             border-bottom: 1px solid #e5e7eb;}
+.ph-title { font-weight: 700; font-size: 14px;}
+.ph-sub { color: #64748b; font-size: 10px; margin-top: 2px;}
+.progress { display: flex; gap: 4px; margin-top: 8px;}
+.progress .seg { flex: 1; height: 3px; border-radius: 2px; background: #cbd5e1;}
+.progress .seg.now { background: #2563eb;}
+.progress .seg.done { background: #22c55e;}
+
+.body { flex: 1; padding: 12px; display:flex; flex-direction:column;
+        gap: 10px; overflow-y: auto;}
+.section-label { font-size: 11px; font-weight: 700; color:#475569;
+                 letter-spacing: .3px; text-transform: uppercase; margin-top:4px;}
+
+.foot { display:flex; gap:6px; padding: 10px;
+        border-top: 1px solid #e5e7eb; background: white;}
+.btn { flex:1; padding: 10px; border-radius: 10px; text-align:center;
+       font-size: 12px; font-weight: 600;}
+.btn-primary { background: #2563eb; color: white;}
+.btn-ghost { background: #f1f5f9; color: #475569;}
+.btn-disabled { background: #e5e7eb; color: #94a3b8;}
+
+/* === Launch entry =================================== */
+.launch-body { flex:1; padding: 16px; display:flex; flex-direction:column;
+               gap: 14px; justify-content:center;}
+.launch-title { font-size: 16px; font-weight: 700; text-align:center; color:#0f172a; margin-bottom: 10px;}
+.launch-card { background: white; border: 2px solid transparent; border-radius: 14px;
+               padding: 18px 16px; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+               display:flex; gap: 14px; align-items:center;}
+.launch-card.primary { border-color: #2563eb; background: #eff6ff;}
+.launch-icon { width: 52px; height: 52px; border-radius: 14px;
+               display:flex; align-items:center; justify-content:center;
+               font-size: 26px; flex-shrink: 0;}
+.lc-test { background: #dbeafe; color: #1e40af;}
+.lc-pid { background: #fef3c7; color: #92400e;}
+.launch-card .lc-title { font-weight: 700; font-size: 14px;}
+.launch-card .lc-sub { font-size: 11px; color: #64748b; margin-top: 3px;}
+.launch-tag { background: #2563eb; color:white; font-size: 9px;
+              padding: 2px 6px; border-radius: 4px; margin-left: 6px;
+              vertical-align: 2px;}
+
+/* === Step 1 ============================================ */
+.product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;}
+.product-card { background: white; border: 2px solid #e5e7eb;
+                border-radius: 10px; padding: 10px 8px;
+                text-align: center; position: relative;}
+.product-card .name { font-weight: 700; font-size: 13px; color:#0f172a;}
+.product-card .tag { font-size: 9px; color:#64748b; margin-top: 2px;}
+.product-card.selected { border-color: #2563eb; background: #eff6ff;}
+.product-card.selected .check { position:absolute; right: 6px; top: 6px;
+                                background: #2563eb; color:white;
+                                width: 16px; height: 16px; border-radius: 50%;
+                                display:flex; align-items:center;
+                                justify-content:center; font-size: 10px;}
+.product-card.disabled { opacity: .4;}
+
+.pid-list { background: white; border-radius: 10px; overflow: hidden;
+            border: 1px solid #e5e7eb;}
+.pid-row { display:flex; align-items:center; padding: 9px 12px;
+           gap: 10px; border-bottom: 1px solid #f1f5f9;}
+.pid-row:last-child { border-bottom: none;}
+.pid-row.special { background:#f8fafc;}
+.radio { width: 14px; height: 14px; border: 2px solid #cbd5e1;
+         border-radius: 50%; flex-shrink: 0;}
+.radio.checked { border-color: #2563eb; background: white;
+                 box-shadow: inset 0 0 0 3px #2563eb;}
+.pid-icon { width: 24px; height: 14px; border-radius: 4px; flex-shrink: 0;
+            background: linear-gradient(90deg, #fbbf24, #f97316, #ec4899);
+            position: relative;}
+.pid-icon.short { width: 14px;}
+.pid-icon.medium { width: 20px;}
+.pid-icon.long { width: 28px;}
+.pid-icon.dense::after { content:''; position:absolute; inset:0;
+                         background-image: radial-gradient(circle, white .5px, transparent 1px);
+                         background-size: 3px 3px; opacity:.6;}
+.pid-icon.online::before { content:'🌐'; position:absolute; left:-14px; top:-3px; font-size:10px;}
+.pid-icon.offline::before { content:'🔌'; position:absolute; left:-14px; top:-3px; font-size:10px;}
+.pid-name { flex:1; font-size: 12px; padding-left: 14px;}
+.pid-num { color:#64748b; font-size: 10px; font-family: monospace;}
+
+.special-icon { font-size: 14px; flex-shrink: 0; padding-left:0;}
+
+/* switch */
+.switch-row { background: white; border-radius: 10px; padding: 10px 12px;
+              display:flex; align-items:center; gap: 10px; border: 1px solid #e5e7eb;}
+.switch-row .text { flex:1;}
+.switch-row .text .t1 { font-size: 12px; font-weight:600;}
+.switch-row .text .t2 { font-size: 10px; color:#64748b; margin-top:2px;}
+.toggle { width: 36px; height: 20px; background:#2563eb; border-radius: 999px;
+          position:relative; flex-shrink:0;}
+.toggle::after { content:''; position:absolute; top:2px; right:2px;
+                 width:16px; height:16px; background:white; border-radius:50%;
+                 box-shadow: 0 1px 3px rgba(0,0,0,.2);}
+.toggle.off { background:#cbd5e1;}
+.toggle.off::after { right:auto; left:2px;}
+
+/* === Write-PID entry ==================================== */
+.wp-body { flex:1; padding: 14px; display:flex; flex-direction:column;
+           gap: 12px;}
+.wp-warn { background: #fef3c7; border: 1px solid #fcd34d;
+           border-radius: 8px; padding: 10px;
+           font-size: 11px; color: #92400e; line-height:1.5;}
+.wp-warn .icon { font-weight: 700; margin-right: 4px;}
+.wp-step { background: white; border: 1px solid #e5e7eb;
+           border-radius: 10px; padding: 10px 12px; display:flex; gap:10px; align-items:center;}
+.wp-step .num { width:22px; height:22px; border-radius:50%;
+                background:#fef3c7; color:#92400e; font-weight:700;
+                font-size:11px; display:flex; align-items:center; justify-content:center;}
+.wp-step .desc { font-size: 11px;}
+</style>
+</head>
+<body>
+
+<h2>启动页 + Step 1 改造版（含 PID 广播解析）</h2>
+<p class="subtitle">主流程把「写 PID」剔除，启动页二选一。Step 1 的 PID 现在真的是「广播过滤条件」，加上「只显示未绑定」开关。看完整体 OK 就回「OK」，要调单独说。</p>
+
+<div class="row">
+
+  <!-- 1: 启动页 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">工厂测试 App</div>
+        <div class="ph-sub">v1.0  ·  请选择要进入的功能</div>
+      </div>
+      <div class="launch-body">
+        <div class="launch-title">你要做什么？</div>
+        <div class="launch-card primary">
+          <div class="launch-icon lc-test">📡</div>
+          <div>
+            <div class="lc-title">测试设备 <span class="launch-tag">主功能</span></div>
+            <div class="lc-sub">扫描 → 配对 → 颜色测试 → 解绑</div>
+          </div>
+        </div>
+        <div class="launch-card">
+          <div class="launch-icon lc-pid">✏️</div>
+          <div>
+            <div class="lc-title">写 PID（工厂出厂用）</div>
+            <div class="lc-sub">单台扫描连接 → 写入指定 PID</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <h3>① 启动页 · 模式二选一</h3>
+    <p class="desc">主功能「测试」高亮（蓝边 + 蓝底）。「写 PID」是辅助工具，黄底警示色，不抢主功能。</p>
+  </div>
+
+  <!-- 2: Step 1 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">选择测试条件</div>
+        <div class="ph-sub">只扫描符合条件的设备</div>
+        <div class="progress"><div class="seg now"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="body">
+        <div class="section-label">产品类型</div>
+        <div class="product-grid">
+          <div class="product-card selected">
+            <div class="check">✓</div>
+            <div class="name">STV1</div>
+            <div class="tag">摄像头灯带</div>
+          </div>
+          <div class="product-card disabled"><div class="name">S2</div><div class="tag">暂未支持</div></div>
+          <div class="product-card disabled"><div class="name">SW1</div><div class="tag">暂未支持</div></div>
+          <div class="product-card disabled"><div class="name">S1_V2</div><div class="tag">暂未支持</div></div>
+        </div>
+
+        <div class="section-label">PID 筛选</div>
+        <div class="pid-list">
+          <div class="pid-row special">
+            <div class="radio checked"></div>
+            <div class="special-icon">⛶</div>
+            <div class="pid-name">不筛选 PID（任意）</div>
+            <div class="pid-num">—</div>
+          </div>
+          <div class="pid-row">
+            <div class="radio"></div>
+            <div class="pid-icon online short"></div>
+            <div class="pid-name">线上 2 米</div>
+            <div class="pid-num">158</div>
+          </div>
+          <div class="pid-row">
+            <div class="radio"></div>
+            <div class="pid-icon online medium"></div>
+            <div class="pid-name">线上 3 米</div>
+            <div class="pid-num">111</div>
+          </div>
+          <div class="pid-row">
+            <div class="radio"></div>
+            <div class="pid-icon online long"></div>
+            <div class="pid-name">线上 5 米</div>
+            <div class="pid-num">112</div>
+          </div>
+          <div class="pid-row">
+            <div class="radio"></div>
+            <div class="pid-icon offline medium"></div>
+            <div class="pid-name">线下 3 米</div>
+            <div class="pid-num">143</div>
+          </div>
+          <div class="pid-row">
+            <div class="radio"></div>
+            <div class="pid-icon offline long"></div>
+            <div class="pid-name">线下 5 米</div>
+            <div class="pid-num">144</div>
+          </div>
+          <div class="pid-row">
+            <div class="radio"></div>
+            <div class="pid-icon offline medium dense"></div>
+            <div class="pid-name">线下 3 米 高密</div>
+            <div class="pid-num">145</div>
+          </div>
+        </div>
+
+        <div class="section-label">其他条件</div>
+        <div class="switch-row">
+          <div class="text">
+            <div class="t1">只显示未绑定的设备</div>
+            <div class="t2">过滤掉已被别人配过的灯带</div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-disabled">← 上一步</div>
+        <div class="btn btn-primary">下一步 →</div>
+      </div>
+    </div></div>
+    <h3>② Step 1 · 测试条件</h3>
+    <p class="desc">PID 列表顶部多了「不筛选」选项。每行带一段示意灯带（线上 🌐 / 线下 🔌、长度按 2/3/5 米示意、高密带颗粒）。底部一个「只看未绑定」开关，默认开。</p>
+  </div>
+
+  <!-- 3: Write-PID entry -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">写 PID 工具</div>
+        <div class="ph-sub">单台设备出厂 PID 配置</div>
+      </div>
+      <div class="wp-body">
+        <div class="wp-warn">
+          <span class="icon">⚠</span>
+          仅供工厂出厂线使用。一次只配一台，<br>
+          需要的 PID 如下：
+        </div>
+
+        <div class="section-label">选择要写入的 PID</div>
+        <div class="pid-list" style="border:1px solid #e5e7eb">
+          <div class="pid-row"><div class="radio checked"></div><div class="pid-icon online short"></div><div class="pid-name">线上 2 米</div><div class="pid-num">158</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-icon online medium"></div><div class="pid-name">线上 3 米</div><div class="pid-num">111</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-icon online long"></div><div class="pid-name">线上 5 米</div><div class="pid-num">112</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-icon offline medium"></div><div class="pid-name">线下 3 米</div><div class="pid-num">143</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-icon offline long"></div><div class="pid-name">线下 5 米</div><div class="pid-num">144</div></div>
+          <div class="pid-row"><div class="radio"></div><div class="pid-icon offline medium dense"></div><div class="pid-name">线下 3 米 高密</div><div class="pid-num">145</div></div>
+        </div>
+
+        <div class="section-label">写入流程</div>
+        <div class="wp-step"><div class="num">1</div><div class="desc">把要写的 1 台设备靠近</div></div>
+        <div class="wp-step"><div class="num">2</div><div class="desc">自动扫描连接最近 1 台</div></div>
+        <div class="wp-step"><div class="num">3</div><div class="desc">写入选中 PID 并校验</div></div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 返回</div>
+        <div class="btn btn-primary">开始写入</div>
+      </div>
+    </div></div>
+    <h3>③ 写 PID 工具入口</h3>
+    <p class="desc">独立流程，不混在测试主流程里。固定单台、强提示「工厂出厂线使用」。本节先确认入口，详细页面后续再画。</p>
+  </div>
+
+</div>
+
+</body>
+</html>

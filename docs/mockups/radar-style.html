@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>雷达风格对比 · factory-tv-strip-android</title>
+<style>
+  body { background:#f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+         margin:0; padding: 24px; color:#0f172a;}
+  h2 { margin: 0 0 6px; }
+  .subtitle { color:#475569; margin: 0 0 24px; max-width: 720px;}
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 24px;}
+  .card { background: white; border-radius: 12px; padding: 16px;
+          box-shadow: 0 2px 6px rgba(0,0,0,.08); cursor: pointer;
+          transition: transform .15s, box-shadow .15s; border: 2px solid transparent;}
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.1);}
+  .card.selected { border-color:#2563eb; box-shadow: 0 6px 14px rgba(37,99,235,.25);}
+  .card h3 { margin: 12px 0 4px;}
+  .card p { color:#475569; font-size: 13px; margin: 0;}
+
+  .phone { width: 100%; max-width: 290px; margin: 0 auto;
+           background: #0f172a; border-radius: 22px; padding: 6px;
+           box-shadow: 0 6px 18px rgba(0,0,0,.35);}
+  .phone-screen { border-radius: 16px; height: 500px;
+                  display: flex; flex-direction: column; overflow: hidden;
+                  font-size: 11px;}
+  .ph-header { padding: 12px 14px; border-bottom: 1px solid #e5e7eb; background:white;}
+  .ph-title { font-weight: 700; font-size: 14px;}
+  .ph-sub { color: #64748b; font-size: 10px; margin-top: 2px;}
+  .progress { display: flex; gap: 4px; margin-top: 8px;}
+  .progress .seg { flex: 1; height: 3px; border-radius: 2px; background: #cbd5e1;}
+  .progress .seg.done { background: #22c55e;}
+  .progress .seg.now { background: #2563eb;}
+  .top-row { display:flex; align-items:center; gap:8px; padding: 10px 14px;}
+  .count-chip { background: #2563eb; color: white; border-radius: 999px;
+                padding: 4px 12px; font-size: 11px; font-weight: 700;}
+  .body { flex: 1; display:flex; flex-direction:column; align-items:center;
+          justify-content:center; gap: 14px; padding: 6px;}
+  .hint { font-size: 10px; color: #64748b;}
+  .foot { display:flex; gap:6px; padding: 10px;
+          border-top: 1px solid #e5e7eb; background: white;}
+  .btn { flex:1; padding: 10px; border-radius: 10px; text-align:center;
+         font-size: 12px; font-weight: 600;}
+  .btn-primary { background: #2563eb; color: white;}
+  .btn-ghost { background: #f1f5f9; color: #475569;}
+
+  /* === A · Pulse (苹果脉冲) ============================== */
+  .pulse-stage { width:200px; height:200px; position:relative;}
+  .pulse-stage .ring { position:absolute; inset:0; border-radius:50%;
+                       border: 2px solid #2563eb; opacity:0;
+                       animation: pulse 2.4s ease-out infinite;}
+  .pulse-stage .ring:nth-child(2) { animation-delay: 0.8s;}
+  .pulse-stage .ring:nth-child(3) { animation-delay: 1.6s;}
+  @keyframes pulse {
+    0%   { transform: scale(.3); opacity: .8;}
+    100% { transform: scale(1.0); opacity: 0;}
+  }
+  .pulse-center { position:absolute; left:50%; top:50%;
+                  transform: translate(-50%,-50%);
+                  width: 56px; height: 56px; border-radius: 50%;
+                  background: #2563eb; display:flex; align-items:center;
+                  justify-content:center; color:white; font-size: 24px;
+                  box-shadow: 0 0 30px rgba(37,99,235,.5);}
+  .pulse-blip { position:absolute; padding: 4px 10px;
+                background:white; border-radius: 999px;
+                font-size: 10px; font-weight: 600; color:#0f172a;
+                box-shadow: 0 2px 6px rgba(0,0,0,.15);
+                display:flex; align-items:center; gap:4px;}
+  .pulse-blip::before { content:''; width: 8px; height: 8px;
+                        background: #22c55e; border-radius: 50%;}
+  .pulse-blip.b1 { top: 16%; left: 60%;}
+  .pulse-blip.b2 { top: 70%; left: 8%;}
+
+  /* === B · 双圈聚焦 (Bullseye) ============================ */
+  .bull-stage { width: 220px; height: 220px; position: relative;
+                background: radial-gradient(circle, #1e3a8a 0%, #0b1f3f 70%, #050a1a 100%);
+                border-radius: 50%; overflow: hidden;}
+  .bull-stage .outer { position:absolute; left:50%; top:50%;
+                       transform: translate(-50%,-50%);
+                       width: 180px; height:180px; border-radius:50%;
+                       border: 1px solid rgba(255,255,255,.15);}
+  .bull-stage .inner { position:absolute; left:50%; top:50%;
+                       transform: translate(-50%,-50%);
+                       width: 80px; height: 80px; border-radius: 50%;
+                       border: 2px solid #22c55e;
+                       background: rgba(34,197,94,.08);
+                       box-shadow: 0 0 24px rgba(34,197,94,.3);}
+  .bull-blip { position:absolute; width: 14px; height:14px; border-radius: 50%;
+               background: #22d3ee; box-shadow: 0 0 12px #22d3ee;}
+  .bull-blip.b1 { top: 30%; left: 65%;}
+  .bull-blip.b2 { top: 70%; left: 30%; background:#fbbf24; box-shadow:0 0 12px #fbbf24;}
+  .bull-label { position:absolute; bottom: 8px; left:50%; transform: translateX(-50%);
+                font-size: 9px; color: rgba(255,255,255,.6); letter-spacing: 1px;}
+
+  /* === C · Material 浅色 ================================== */
+  .mat-stage { width: 220px; height: 220px; position: relative;
+               background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+               border-radius: 50%;
+               box-shadow: inset 0 0 30px rgba(37,99,235,.1);}
+  .mat-stage .ring { position:absolute; left:50%; top:50%;
+                     transform:translate(-50%,-50%); border-radius:50%;
+                     border: 1px solid rgba(37,99,235,.25);}
+  .mat-stage .ring.r2 { width:65%; height:65%;}
+  .mat-stage .ring.r1 { width:35%; height:35%;
+                        border: 2px solid #2563eb;
+                        background: rgba(37,99,235,.08);}
+  .mat-center { position:absolute; left:50%; top:50%;
+                transform:translate(-50%,-50%);
+                width: 16px; height: 16px; background:#2563eb;
+                border-radius: 50%;
+                box-shadow: 0 0 16px rgba(37,99,235,.4);}
+  .mat-blip { position:absolute; display:flex; flex-direction:column;
+              align-items:center; gap:4px;}
+  .mat-blip .icon { width: 28px; height: 28px; background: white;
+                    border-radius: 8px; display:flex; align-items:center;
+                    justify-content:center; font-size:14px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,.15);}
+  .mat-blip .name { font-size: 9px; color:#1e293b; font-weight: 600;
+                    background:white; padding:2px 6px; border-radius: 4px;}
+  .mat-blip.b1 { top: 25%; left: 60%;}
+  .mat-blip.b2 { top: 65%; left: 18%;}
+</style>
+</head>
+<body>
+
+<h2>雷达风格 — 3 种走法</h2>
+<p class="subtitle">外面的「全屏向导」框架不变，只换中间那个雷达。每个 mockup 都是「扫描配对」步骤，已配 3 台、2 台正在靠近。点你最喜欢的，再回终端告诉我 A / B / C。</p>
+
+<div class="cards">
+
+  <!-- A · Pulse -->
+  <div class="card" data-choice="A" onclick="pick(this)">
+    <div class="phone"><div class="phone-screen" style="background:#f8fafc">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带靠近手机，进入蓝圈自动配对</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row"><span class="count-chip">已配 3</span><span class="hint">附近 2 台</span></div>
+      <div class="body">
+        <div class="pulse-stage">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="pulse-center">📱</div>
+          <div class="pulse-blip b1">灯带 a3f8</div>
+          <div class="pulse-blip b2">灯带 91b2</div>
+        </div>
+        <div class="hint">把要配的灯带凑近手机</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>A · 脉冲（苹果风）</h3>
+    <p>中间一个手机/中心点，向外脉冲扩散。设备点用白色 chip + 名称漂浮显示。极简、无刻度线、动效柔和。</p>
+  </div>
+
+  <!-- B · Bullseye -->
+  <div class="card" data-choice="B" onclick="pick(this)">
+    <div class="phone"><div class="phone-screen" style="background:#f8fafc">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带靠近手机，进入绿圈自动配对</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row"><span class="count-chip">已配 3</span><span class="hint">附近 2 台</span></div>
+      <div class="body">
+        <div class="bull-stage">
+          <div class="outer"></div>
+          <div class="inner"></div>
+          <div class="bull-blip b1"></div>
+          <div class="bull-blip b2"></div>
+          <div class="bull-label">PAIR ZONE</div>
+        </div>
+        <div class="hint">外圈「检测到」，内圈「自动配对」</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>B · 双圈聚焦（深色）</h3>
+    <p>深蓝渐变背景，外圈「检测范围」、内圈「配对区」语义清晰。设备点带荧光发光。最像传统雷达，但去掉了刻度线和扫描线。</p>
+  </div>
+
+  <!-- C · Material -->
+  <div class="card" data-choice="C" onclick="pick(this)">
+    <div class="phone"><div class="phone-screen" style="background:white">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带靠近手机，进入蓝圈自动配对</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row"><span class="count-chip">已配 3</span><span class="hint">附近 2 台</span></div>
+      <div class="body">
+        <div class="mat-stage">
+          <div class="ring r2"></div>
+          <div class="ring r1"></div>
+          <div class="mat-center"></div>
+          <div class="mat-blip b1"><div class="icon">💡</div><div class="name">a3f8</div></div>
+          <div class="mat-blip b2"><div class="icon">💡</div><div class="name">91b2</div></div>
+        </div>
+        <div class="hint">设备图标 + 名字直观显示</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>C · 浅色 + 设备图标</h3>
+    <p>浅蓝背景，柔和阴影。设备用真实图标（灯条/💡）+ 名字标签，工厂小白看图就懂。整体最不像雷达，最像「附近设备地图」。</p>
+  </div>
+
+</div>
+
+<div id="indicator" style="position:fixed;right:24px;bottom:24px;background:#2563eb;color:white;padding:12px 20px;border-radius:999px;box-shadow:0 4px 14px rgba(37,99,235,.3);font-weight:600;font-size:14px;display:none">已选：<span id="picked"></span></div>
+
+<script>
+function pick(el) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('picked').textContent = el.dataset.choice;
+  document.getElementById('indicator').style.display = 'block';
+}
+</script>
+
+</body>
+</html>

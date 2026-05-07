@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Step 2 雷达页详细 mockup</title>
+<style>
+body { background:#f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+       margin:0; padding: 24px; color:#0f172a;}
+h2 { margin: 0 0 6px;}
+.subtitle { color:#475569; margin: 0 0 24px; max-width: 720px;}
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 24px;}
+.col { background: white; border-radius: 12px; padding: 16px;
+       box-shadow: 0 2px 6px rgba(0,0,0,.08);}
+.col h3 { margin: 12px 0 4px; font-size: 16px;}
+.col .desc { color:#475569; font-size: 13px; margin: 0;}
+
+.phone { width: 100%; max-width: 290px; margin: 0 auto;
+         background: #0f172a; border-radius: 22px; padding: 6px;
+         box-shadow: 0 6px 18px rgba(0,0,0,.35);}
+.phone-screen { background: #f8fafc; border-radius: 16px; height: 580px;
+                display: flex; flex-direction: column; overflow: hidden;
+                font-size: 11px; color: #1e293b; position: relative;}
+.ph-header { padding: 12px 14px; background: white;
+             border-bottom: 1px solid #e5e7eb; position: relative;}
+.ph-title { font-weight: 700; font-size: 14px;}
+.ph-sub { color: #64748b; font-size: 10px; margin-top: 2px;}
+.gear { position: absolute; right: 12px; top: 12px;
+        font-size: 18px; color:#475569; cursor:pointer;}
+.progress { display: flex; gap: 4px; margin-top: 8px;}
+.progress .seg { flex: 1; height: 3px; border-radius: 2px; background: #cbd5e1;}
+.progress .seg.now { background: #2563eb;}
+.progress .seg.done { background: #22c55e;}
+
+.top-row { display:flex; align-items:center; gap:8px;
+           padding: 10px 14px; background:white;
+           border-bottom: 1px solid #e5e7eb;}
+.count-chip { background: #2563eb; color: white; border-radius: 999px;
+              padding: 4px 12px; font-size: 11px; font-weight: 700;
+              transition: transform .2s;}
+.count-chip.bumping { animation: bump .4s ease;}
+@keyframes bump {
+  0%   { transform: scale(1);}
+  40%  { transform: scale(1.4);}
+  100% { transform: scale(1);}
+}
+.hint { font-size: 10px; color: #64748b;}
+
+.body { flex: 1; display:flex; flex-direction:column; align-items:center;
+        justify-content:center; gap: 14px; padding: 12px;}
+
+.foot { display:flex; gap:6px; padding: 10px;
+        border-top: 1px solid #e5e7eb; background: white;}
+.btn { flex:1; padding: 10px; border-radius: 10px; text-align:center;
+       font-size: 12px; font-weight: 600;}
+.btn-primary { background: #2563eb; color: white;}
+.btn-ghost { background: #f1f5f9; color: #475569;}
+.btn-disabled { background: #e5e7eb; color: #94a3b8;}
+
+/* === Pulse radar ====================================== */
+.pulse-stage { width:220px; height:220px; position:relative;}
+.pulse-stage .ring { position:absolute; inset:0; border-radius:50%;
+                     border: 2px solid #2563eb; opacity:0;
+                     animation: pulse 2.4s ease-out infinite;}
+.pulse-stage .ring:nth-child(2) { animation-delay: 0.8s;}
+.pulse-stage .ring:nth-child(3) { animation-delay: 1.6s;}
+@keyframes pulse {
+  0%   { transform: scale(.3); opacity: .8;}
+  100% { transform: scale(1.0); opacity: 0;}
+}
+.pair-zone { position:absolute; left:50%; top:50%;
+             transform: translate(-50%,-50%);
+             width: 33%; height: 33%; border-radius:50%;
+             border: 1.5px dashed #60a5fa; background: rgba(96,165,250,.08);}
+.pulse-center { position:absolute; left:50%; top:50%;
+                transform: translate(-50%,-50%);
+                width: 56px; height: 56px; border-radius: 50%;
+                background: #2563eb; display:flex; align-items:center;
+                justify-content:center; color:white; font-size: 24px;
+                box-shadow: 0 0 30px rgba(37,99,235,.5);}
+.blip { position:absolute; padding: 4px 8px; border-radius: 999px;
+        font-size: 10px; font-weight: 600;
+        display:flex; align-items:center; gap:5px; white-space:nowrap;
+        transform: translate(-50%,-50%);
+        box-shadow: 0 2px 6px rgba(0,0,0,.15);}
+.blip::before { content:''; width: 6px; height: 6px; border-radius: 50%;}
+.blip.detected { background:white; color:#0f172a;}
+.blip.detected::before { background:#22c55e;}
+.blip.preparing { background:white; color:#15803d;
+                  border: 2px solid #22c55e; padding: 3px 7px;
+                  animation: ready-pulse 1s ease-in-out infinite;}
+.blip.preparing::before { background:#22c55e;}
+@keyframes ready-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.4);}
+  50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0);}
+}
+.blip.queued { background:#f1f5f9; color:#64748b;
+               border: 1.5px solid #cbd5e1;}
+.blip.queued::before { background:#94a3b8;}
+.blip.failed { background:#fef2f2; color:#dc2626;
+               border: 1.5px solid #ef4444;}
+.blip.failed::before { background:#ef4444;}
+.blip.skip { background:#fef2f2; color:#dc2626;
+             border: 1.5px solid #ef4444;}
+.blip.skip::before { background:#ef4444;}
+.blip.flying { animation: fly-up .6s ease-in forwards;}
+@keyframes fly-up {
+  0%   { transform: translate(-50%,-50%) scale(1); opacity:1;}
+  100% { transform: translate(40%,-380%) scale(.4); opacity:0;}
+}
+
+/* === Sensitivity sheet =============================== */
+.sheet-mask { position: absolute; inset: 0;
+              background: rgba(15,23,42,.4);}
+.sheet { position: absolute; left: 0; right: 0; bottom: 0;
+         background: white; border-radius: 16px 16px 0 0;
+         padding: 16px 16px 12px; box-shadow: 0 -4px 16px rgba(0,0,0,.15);}
+.sheet h4 { margin: 0 0 6px; font-size: 14px;}
+.sheet-sub { color:#64748b; font-size: 10px; margin: 0 0 14px;}
+.sheet-slider { background: #e2e8f0; border-radius: 999px;
+                padding: 4px; display: flex; gap: 2px;}
+.sheet-slider .step { flex: 1; padding: 7px 4px; text-align:center;
+                      border-radius: 999px; font-size: 10px;
+                      font-weight: 600; color:#64748b;}
+.sheet-slider .step.active { background:#2563eb; color:white;
+                             box-shadow: 0 1px 3px rgba(37,99,235,.3);}
+.sheet-foot { display:flex; gap:6px; margin-top:14px;}
+
+/* error states */
+.err-banner { background: #fef2f2; border: 1px solid #fca5a5;
+              border-radius: 8px; padding: 10px 12px;
+              display:flex; align-items:center; gap: 10px;
+              font-size: 11px; color:#991b1b;}
+.err-banner .ico { font-size: 16px;}
+.err-banner .grow { flex:1;}
+.err-banner .act { background:#dc2626; color:white;
+                   padding: 6px 12px; border-radius: 6px;
+                   font-size: 10px; font-weight: 600;}
+
+.empty-msg { text-align:center; color:#94a3b8; font-size: 11px; line-height: 1.6;}
+.empty-msg .big { font-size: 28px; display:block; margin-bottom: 4px;}
+</style>
+</head>
+<body>
+
+<h2>Step 2 · 雷达页详细 mockup</h2>
+<p class="subtitle">同一页面在不同状态下的样子。看完整体 OK 就回「OK」，要调具体哪一项告诉我。</p>
+
+<div class="row">
+
+  <!-- 1: 主状态 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带凑近手机，进入蓝圈自动配对</div>
+        <div class="gear">⚙</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row">
+        <span class="count-chip">已配 3</span>
+        <span class="hint">附近 4 台 · 队列 1</span>
+      </div>
+      <div class="body">
+        <div class="pulse-stage">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="pair-zone"></div>
+          <div class="pulse-center">📱</div>
+          <div class="blip detected"  style="top:25%; left:70%;">a3f8</div>
+          <div class="blip queued"    style="top:48%; left:18%;">91b2 队列中</div>
+          <div class="blip preparing" style="top:55%; left:55%;">e7c1 准备配对</div>
+          <div class="blip detected"  style="top:78%; left:35%;">2dd4</div>
+        </div>
+        <div class="hint">已配 3 台 · 把下一台凑近</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>① 主状态 · 4 种 chip</h3>
+    <p class="desc">白 chip = 检测到、绿描边 + 脉冲 = 进圈准备配对、灰 chip = 排队、内圈虚线 = 自动配对中心区。</p>
+  </div>
+
+  <!-- 2: 配对成功瞬间 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带凑近手机，进入蓝圈自动配对</div>
+        <div class="gear">⚙</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row">
+        <span class="count-chip bumping">已配 4</span>
+        <span class="hint" style="color:#15803d;font-weight:600">✓ e7c1 已配上</span>
+      </div>
+      <div class="body">
+        <div class="pulse-stage">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="pair-zone"></div>
+          <div class="pulse-center">📱</div>
+          <div class="blip detected" style="top:25%; left:70%;">a3f8</div>
+          <div class="blip queued"   style="top:48%; left:18%;">91b2 队列中</div>
+          <div class="blip preparing flying" style="top:55%; left:55%;">e7c1</div>
+          <div class="blip detected" style="top:78%; left:35%;">2dd4</div>
+        </div>
+        <div class="hint">已配 4 台 · 把下一台凑近</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>② 配对成功瞬间</h3>
+    <p class="desc">设备 chip 飞向计数器，计数器从 3 → 4 跳一下放大动画，提示条变绿色「✓ e7c1 已配上」短暂显示 1.5s。同时震动 30ms。</p>
+  </div>
+
+  <!-- 3: PID 不符 / 失败 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带凑近手机，进入蓝圈自动配对</div>
+        <div class="gear">⚙</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row">
+        <span class="count-chip">已配 3</span>
+        <span class="hint" style="color:#dc2626">⚠ 7f02 PID 不符 · 跳过</span>
+      </div>
+      <div class="body">
+        <div class="pulse-stage">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="pair-zone"></div>
+          <div class="pulse-center">📱</div>
+          <div class="blip skip"   style="top:50%; left:55%;">7f02 PID 不符</div>
+          <div class="blip failed" style="top:30%; left:25%;">b104 连接失败</div>
+          <div class="blip detected" style="top:75%; left:70%;">a3f8</div>
+        </div>
+        <div class="hint">PID 不符 = 这台设备类型不对（如选 5m 但凑近的是 3m）</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-primary">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>③ PID 不符 / 连接失败</h3>
+    <p class="desc">红 chip 显示原因，2s 后从雷达移除（PID 不符）或回白可重试（连接失败）。顶部短暂红字提示。</p>
+  </div>
+
+  <!-- 4: 灵敏度抽屉 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带凑近手机，进入蓝圈自动配对</div>
+        <div class="gear">⚙</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row">
+        <span class="count-chip">已配 3</span>
+        <span class="hint">附近 4 台</span>
+      </div>
+      <div class="body">
+        <div class="pulse-stage">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="pair-zone" style="width:24%;height:24%;border-color:#2563eb;background:rgba(37,99,235,.12)"></div>
+          <div class="pulse-center">📱</div>
+          <div class="blip detected" style="top:25%; left:70%;">a3f8</div>
+          <div class="blip detected" style="top:75%; left:30%;">2dd4</div>
+        </div>
+      </div>
+      <div class="sheet-mask"></div>
+      <div class="sheet">
+        <h4>配对灵敏度</h4>
+        <p class="sheet-sub">越严格 = 设备要凑得越近才会自动配上</p>
+        <div class="sheet-slider">
+          <div class="step">紧贴</div>
+          <div class="step active">很近</div>
+          <div class="step">近</div>
+          <div class="step">中</div>
+          <div class="step">较远</div>
+        </div>
+        <div class="sheet-foot">
+          <div class="btn btn-ghost">取消</div>
+          <div class="btn btn-primary">完成</div>
+        </div>
+      </div>
+    </div></div>
+    <h3>④ 灵敏度抽屉</h3>
+    <p class="desc">点 ⚙ 弹底部 sheet。5 档离散滑块，雷达上的虚线圆实时缩放给视觉反馈。当前选「很近」对应中心圈很小。</p>
+  </div>
+
+  <!-- 5: 蓝牙关闭错误 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带凑近手机，进入蓝圈自动配对</div>
+        <div class="gear">⚙</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row">
+        <span class="count-chip">已配 0</span>
+      </div>
+      <div class="body">
+        <div class="err-banner">
+          <span class="ico">📵</span>
+          <div class="grow"><b>蓝牙未打开</b><br><span style="color:#7f1d1d">扫描需要蓝牙</span></div>
+          <div class="act">打开蓝牙</div>
+        </div>
+        <div class="pulse-stage" style="opacity:.3">
+          <div class="pair-zone"></div>
+          <div class="pulse-center" style="background:#94a3b8;box-shadow:none">📱</div>
+        </div>
+        <div class="hint">打开蓝牙后会自动开始扫描</div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-disabled">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>⑤ 蓝牙未开错误态</h3>
+    <p class="desc">红条 + 一键打开蓝牙按钮。雷达置灰、脉冲停。无权限态同形式（按钮换「去授权」）。</p>
+  </div>
+
+  <!-- 6: 5s 没扫到 -->
+  <div class="col">
+    <div class="phone"><div class="phone-screen">
+      <div class="ph-header">
+        <div class="ph-title">扫描配对</div>
+        <div class="ph-sub">把灯带凑近手机，进入蓝圈自动配对</div>
+        <div class="gear">⚙</div>
+        <div class="progress"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div><div class="seg"></div></div>
+      </div>
+      <div class="top-row">
+        <span class="count-chip">已配 0</span>
+        <span class="hint">扫描中 · 5 秒</span>
+      </div>
+      <div class="body">
+        <div class="pulse-stage">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="pair-zone"></div>
+          <div class="pulse-center">📱</div>
+        </div>
+        <div class="empty-msg">
+          <span class="big">🔍</span>
+          还没扫到设备<br>
+          <span style="font-size:10px;color:#cbd5e1">确认设备已通电、且距离 ≤ 5 米</span>
+        </div>
+      </div>
+      <div class="foot">
+        <div class="btn btn-ghost">← 上一步</div>
+        <div class="btn btn-disabled">全部配完 →</div>
+      </div>
+    </div></div>
+    <h3>⑥ 长时间没扫到</h3>
+    <p class="desc">空雷达 + 友好提示，让工人检查设备。「全部配完」按钮 disabled（一台都没配上）。</p>
+  </div>
+
+</div>
+
+</body>
+</html>
