@@ -120,20 +120,24 @@ class FactoryViewModel(
     }
 
     fun setLightPid() {
-        runSelected("正在写入产品型号...", DeviceConnectionState.Connected) { device, settings ->
-            dispatcher.setPid(device, settings)
+        // TODO Task 12 rewire
+        val pid = _uiState.value.settings.pid
+        runSelected("正在写入产品型号...", DeviceConnectionState.Connected) { device, _ ->
+            dispatcher.setPid(device, pid)
         }
     }
 
     fun setColor(rgb: Int) {
-        runSelected("正在设置灯光...", DeviceConnectionState.Connected) { device, settings ->
-            dispatcher.setColor(device, settings, rgb)
+        // TODO Task 12 rewire
+        runSelected("正在设置灯光...", DeviceConnectionState.Connected) { device, _ ->
+            dispatcher.setColor(device, rgb)
         }
     }
 
     fun setHighestPowerColor() {
-        runSelected("正在测试最高亮度...", DeviceConnectionState.Connected) { device, settings ->
-            dispatcher.setHighestPowerColor(device, settings)
+        // TODO Task 12 rewire — full max-power flow will be re-implemented
+        runSelected("正在测试最高亮度...", DeviceConnectionState.Connected) { device, _ ->
+            dispatcher.setMaxPower(device)
         }
     }
 

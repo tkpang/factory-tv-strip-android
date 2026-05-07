@@ -1,8 +1,6 @@
 package com.tkpang.tvstriptest.factory
 
 import com.tkpang.tvstriptest.model.FactoryDevice
-import com.tkpang.tvstriptest.model.FactorySettings
-import com.tkpang.tvstriptest.model.ProductCatalog
 import com.tkpang.tvstriptest.protocol.BleDeviceInfo
 import com.tkpang.tvstriptest.protocol.DpCommands
 import com.tkpang.tvstriptest.protocol.LeConstants
@@ -32,9 +30,10 @@ data class CommandResult(
 
 interface CommandDispatcher {
     suspend fun connect(device: FactoryDevice): CommandResult
-    suspend fun setPid(device: FactoryDevice, settings: FactorySettings): CommandResult
-    suspend fun setHighestPowerColor(device: FactoryDevice, settings: FactorySettings): CommandResult
-    suspend fun setColor(device: FactoryDevice, settings: FactorySettings, rgb: Int): CommandResult
+    suspend fun setPid(device: FactoryDevice, pid: Int): CommandResult
+    suspend fun setColor(device: FactoryDevice, rgb: Int): CommandResult
+    suspend fun setMaxPower(device: FactoryDevice): CommandResult
+    suspend fun lightOff(device: FactoryDevice): CommandResult
     suspend fun unbindAndDelete(device: FactoryDevice): CommandResult
     suspend fun closeAll()
 }
@@ -58,49 +57,36 @@ class PerDeviceBleDispatcher(
         )
     }
 
-    override suspend fun setPid(device: FactoryDevice, settings: FactorySettings): CommandResult = withSession(
+    override suspend fun setPid(device: FactoryDevice, pid: Int): CommandResult = withSession(
         device = device,
-        commands = listOf(DpCommands.setPid(settings.pid)),
-        successMessage = "PID set to ${settings.pid}",
+        commands = listOf(DpCommands.setPid(pid)),
+        successMessage = "PID set to $pid",
     )
 
-    override suspend fun setHighestPowerColor(device: FactoryDevice, settings: FactorySettings): CommandResult {
-        val ledCount = try {
-            ProductCatalog.requireLedCount(settings.productDevName, settings.pid)
-        } catch (error: IllegalArgumentException) {
-            return CommandResult(device.address, success = false, message = error.message ?: "Invalid product")
-        } catch (error: IllegalStateException) {
-            return CommandResult(device.address, success = false, message = error.message ?: "Invalid product")
-        }
-        return withSession(
-            device = device,
-            commands = DpCommands.highestPowerSequence(
-                ledCount = ledCount,
-                rgb = settings.maxPowerColor,
-                brightness = settings.maxBrightness,
-            ),
-            successMessage = "Highest power color set",
-        )
-    }
+    override suspend fun setColor(device: FactoryDevice, rgb: Int): CommandResult = withSession(
+        device = device,
+        commands = listOf(
+            DpCommands.grooveState(true),
+            DpCommands.setMaxBrightness(1000),
+            DpCommands.grooveHandle(DpCommands.solidColorGroove(rgb)),
+        ),
+        successMessage = "Color set",
+    )
 
-    override suspend fun setColor(device: FactoryDevice, settings: FactorySettings, rgb: Int): CommandResult {
-        val ledCount = try {
-            ProductCatalog.requireLedCount(settings.productDevName, settings.pid)
-        } catch (error: IllegalArgumentException) {
-            return CommandResult(device.address, success = false, message = error.message ?: "Invalid product")
-        } catch (error: IllegalStateException) {
-            return CommandResult(device.address, success = false, message = error.message ?: "Invalid product")
-        }
-        return withSession(
-            device = device,
-            commands = listOf(
-                DpCommands.grooveState(true),
-                DpCommands.setMaxBrightness(settings.maxBrightness),
-                DpCommands.grooveHandle(DpCommands.solidColorGroove(ledCount, rgb)),
-            ),
-            successMessage = "Color set",
-        )
-    }
+    override suspend fun setMaxPower(device: FactoryDevice): CommandResult = withSession(
+        device = device,
+        commands = listOf(
+            DpCommands.grooveState(true),
+            DpCommands.grooveHandle(DpCommands.MAX_POWER_COMMAND),
+        ),
+        successMessage = "Max power set",
+    )
+
+    override suspend fun lightOff(device: FactoryDevice): CommandResult = withSession(
+        device = device,
+        commands = listOf(DpCommands.grooveState(false)),
+        successMessage = "Light off",
+    )
 
     override suspend fun unbindAndDelete(device: FactoryDevice): CommandResult = withRawPayload(
         device = device,

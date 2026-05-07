@@ -31,6 +31,4 @@ object ProductCatalog {
         ProductType("S1_V2", "S1-V2 灯带",     emptyList()),
     )
 
-    // 临时保留以兼容现有 CommandDispatcher / FactoryViewModel 调用，Task 5 会删
-    fun requireLedCount(devName: String, pid: Int): Int = 1
 }
