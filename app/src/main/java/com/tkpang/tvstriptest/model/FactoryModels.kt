@@ -1,5 +1,8 @@
 package com.tkpang.tvstriptest.model
 
+import com.tkpang.tvstriptest.factory.ColorTestUseCase
+import com.tkpang.tvstriptest.factory.UnbindUseCase
+
 enum class DeviceConnectionState { Discovered, Connecting, Connected, Ready, Failed, Unbound }
 
 data class ScanDevice(
@@ -9,18 +12,18 @@ data class ScanDevice(
     val pid: Int? = null,
     val isBonded: Boolean = false,
     val pairingState: PairingState = PairingState.DETECTED,
-    // Legacy fields — kept for backward compatibility; Task 12 will remove them
-    @Deprecated("Superseded by pairingState logic in Task 12 use-cases")
+    // Legacy fields — kept for backward compatibility
+    @Deprecated("Superseded by pairingState logic in use-cases")
     val autoSelected: Boolean = false,
-    @Deprecated("Superseded by pairingState logic in Task 12 use-cases")
+    @Deprecated("Superseded by pairingState logic in use-cases")
     val selected: Boolean = false,
 )
 
 data class FactoryDevice(
     val address: String,
     val name: String?,
-    val rssi: Int,
-    val state: DeviceConnectionState,
+    val rssi: Int = 0,
+    val state: DeviceConnectionState = DeviceConnectionState.Discovered,
     val did: Long? = null,
     val pid: Int? = null,
     val firmwareVersion: String? = null,
@@ -30,9 +33,30 @@ data class FactoryDevice(
 
 data class FactorySettings(
     val productDevName: String = "STV1",
-    val pid: Int = 111,
-    val targetDeviceCount: Int = 1,
-    val rssiThreshold: Int = -65,
-    val maxPowerColor: Int = 0xFFFFFF,
-    val maxBrightness: Int = 1000,
+    val pidFilter: PidFilter = PidFilter.Any,
+    val onlyUnbonded: Boolean = true,
+    val sensitivity: SensitivityLevel = SensitivityLevel.NEAR,
+)
+
+enum class WizardStep(val index: Int, val displayName: String) {
+    PRODUCT(0, "选条件"),
+    SCAN(1, "扫描配对"),
+    COLOR(2, "颜色测试"),
+    UNBIND(3, "解绑"),
+}
+
+sealed interface ErrorBanner {
+    data object BluetoothOff : ErrorBanner
+    data object MissingPermission : ErrorBanner
+}
+
+data class FactoryUiState(
+    val step: WizardStep = WizardStep.PRODUCT,
+    val settings: FactorySettings = FactorySettings(),
+    val visibleDevices: List<ScanDevice> = emptyList(),
+    val pairedDevices: List<FactoryDevice> = emptyList(),
+    val pairingMessage: String? = null,
+    val colorTestResult: ColorTestUseCase.Result? = null,
+    val unbindProgress: UnbindUseCase.Progress? = null,
+    val errorBanner: ErrorBanner? = null,
 )

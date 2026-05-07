@@ -9,22 +9,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tkpang.tvstriptest.ble.BleDeviceSession
 import com.tkpang.tvstriptest.ble.BleScanner
 import com.tkpang.tvstriptest.factory.DeviceCommandSession
-import com.tkpang.tvstriptest.factory.FactoryScanner
 import com.tkpang.tvstriptest.factory.FactoryViewModel
 import com.tkpang.tvstriptest.factory.PerDeviceBleDispatcher
-import com.tkpang.tvstriptest.model.ScanDevice
 import com.tkpang.tvstriptest.protocol.BleDeviceInfo
 import com.tkpang.tvstriptest.protocol.LeMessageCodec
-import com.tkpang.tvstriptest.ui.FactoryScreen
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -33,8 +33,10 @@ class MainActivity : ComponentActivity() {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val scanner = AndroidFactoryScanner(BleScanner(this@MainActivity))
-                val dispatcher = PerDeviceBleDispatcher { device -> AndroidDeviceCommandSession.create(this@MainActivity, device.address) }
+                val scanner = BleScanner(this@MainActivity)
+                val dispatcher = PerDeviceBleDispatcher { device ->
+                    AndroidDeviceCommandSession.create(this@MainActivity, device.address)
+                }
                 return FactoryViewModel(scanner, dispatcher) as T
             }
         }
@@ -44,25 +46,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestFactoryPermissions()
         setContent {
-            val state = viewModel.uiState.collectAsStateWithLifecycle().value
             MaterialTheme {
                 Surface {
-                    FactoryScreen(
-                        state = state,
-                        onProductTypeChange = viewModel::setProductType,
-                        onPidChange = viewModel::setPid,
-                        onRssiThresholdChange = viewModel::setRssiThreshold,
-                        onTargetCountChange = viewModel::setTargetDeviceCount,
-                        onStartScan = viewModel::startScan,
-                        onStopScan = viewModel::stopScan,
-                        onDeviceSelected = viewModel::setSelected,
-                        onConnectSelected = viewModel::connectSelected,
-                        onSetLightPid = viewModel::setLightPid,
-                        onSetColor = viewModel::setColor,
-                        onMaxPowerColorChange = viewModel::setMaxPowerColor,
-                        onSetHighestPowerColor = viewModel::setHighestPowerColor,
-                        onUnbindAll = viewModel::unbindAll,
-                    )
+                    // TODO Task 22: replace with wizard UI
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("Wizard UI — Task 22")
+                    }
                 }
             }
         }
@@ -83,18 +72,6 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val REQUEST_FACTORY_PERMISSIONS = 1001
     }
-}
-
-private class AndroidFactoryScanner(
-    private val scanner: BleScanner,
-) : FactoryScanner {
-    override val devices: StateFlow<List<ScanDevice>> = scanner.devices
-
-    @Suppress("MissingPermission")
-    override fun start(): Boolean = scanner.start()
-
-    @Suppress("MissingPermission")
-    override fun stop() = scanner.stop()
 }
 
 private class AndroidDeviceCommandSession(
