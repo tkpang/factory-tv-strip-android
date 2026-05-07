@@ -38,9 +38,16 @@ fun FactoryWizardScreen(
         },
         bottomBar = {
             BottomNavBar(
-                onBack = if (state.step.index > 0) { { vm.back() } } else null,
+                // Step 1 的「上一步」用作退出测试模式回主页（顺手清理状态，
+                // 避免下次进入看到旧的已配设备/反馈消息）；其余 step 才是回退一步。
+                onBack = if (state.step.index > 0) {
+                    { vm.back() }
+                } else {
+                    { vm.resetToFirstStep(); onExit() }
+                },
                 onNext = nextLambda(state.step, vm, onExit),
                 nextLabel = if (state.step == WizardStep.UNBIND) "完成" else "下一步 →",
+                backLabel = if (state.step.index == 0) "← 返回主页" else "← 上一步",
             )
         },
     ) { padding ->

@@ -42,7 +42,7 @@ fun PulseRadar(
     devices: List<ScanDevice>,
     sensitivity: SensitivityLevel,
     pairingStates: Map<String, PairingState> = emptyMap(),
-    radius: Dp = 110.dp,
+    radius: Dp = 150.dp,
     onDeviceClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -176,7 +176,10 @@ private fun chipSuffix(state: PairingState) = when (state) {
 
 private fun positionForDevice(device: ScanDevice): Pair<Float, Float> {
     val rssi = device.rssi.toFloat().coerceIn(-90f, -30f)
-    val r = ((-30f - rssi) / 60f).coerceIn(0f, 1f) * 0.85f
+    // 留出最小 30% 半径作中心区，避免强信号设备压在中心 📱 上点不到。
+    // 最大延伸到 90% 半径，留些边距防 chip 文字被裁。
+    val raw = ((-30f - rssi) / 60f).coerceIn(0f, 1f)
+    val r = 0.30f + raw * 0.60f
     val angleDeg = (device.address.hashCode() and 0x1FF) % 360
     val angle = Math.toRadians(angleDeg.toDouble())
     return (r * cos(angle).toFloat()) to (r * sin(angle).toFloat())

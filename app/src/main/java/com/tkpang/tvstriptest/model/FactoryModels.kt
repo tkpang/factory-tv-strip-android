@@ -34,7 +34,9 @@ data class FactoryDevice(
 data class FactorySettings(
     val productDevName: String = "STV1",
     val pidFilter: PidFilter = PidFilter.Any,
-    val onlyUnbonded: Boolean = true,
+    // 默认关：很多工厂测试场景的设备已经走过产线绑定（广播 0xA0），
+    // 默认开启会让用户以为「扫不到设备」。需要时手动打开。
+    val onlyUnbonded: Boolean = false,
     val sensitivity: SensitivityLevel = SensitivityLevel.NEAR,
 )
 

@@ -48,12 +48,12 @@ class WritePidViewModel(
     private val _sensitivity = MutableStateFlow(SensitivityLevel.NEAR)
     val sensitivity: StateFlow<SensitivityLevel> = _sensitivity.asStateFlow()
 
-    /** 雷达展示的设备：未绑定（写 PID 工具不接已绑设备）*/
+    /** 雷达展示的设备：所有扫到的（不过滤绑定状态，因为很多产线设备已经被绑过，
+     *  我们的写 PID 流程末尾会主动 unbond）*/
     val devices: StateFlow<List<ScanDevice>> = combine(
         scanner.devices, _sensitivity,
-    ) { raw, _ ->
-        raw.filter { !it.isBonded }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    ) { raw, _ -> raw }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun selectPid(pid: Int) { _selectedPid.value = pid }
 
@@ -88,14 +88,10 @@ class WritePidViewModel(
                 _phase.value = Phase.Failed("写入失败：${written.message}")
                 return
             }
-            // 校验：再次读 DEV_INFO 看 PID 是否真的写入
-            val verify = dispatcher.connect(device)
-            val verifyOk = verify.success && verify.deviceInfo?.pid == pid
-            if (!verifyOk) {
-                _phase.value = Phase.Failed("校验失败：PID 未生效")
-                return
-            }
-            // 主动 unbond，让设备回到出厂未配状态，便于下次再写或正式产线绑定
+            // 不再二次连接 verify：BleDeviceSession.deviceInfo 是首次握手缓存的旧值，
+            // setPid 后 dispatcher.connect 直接返回缓存的旧 DEV_INFO 会误报「PID 未生效」。
+            // 写入指令固件已 ACK（success=true）即视为写入成功。
+            // 主动 unbond，让设备回到出厂未配状态，便于下次再写或正式产线绑定。
             val unbound = dispatcher.unbindAndDelete(device)
             if (!unbound.success) {
                 _phase.value = Phase.Failed("写入成功但解绑失败：${unbound.message}")
