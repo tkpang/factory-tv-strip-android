@@ -2,8 +2,10 @@ package com.tkpang.tvstriptest.factory
 
 import com.tkpang.tvstriptest.model.ScanDevice
 import com.tkpang.tvstriptest.model.SensitivityLevel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -90,11 +92,11 @@ class RadarStateMachineTest {
     )
 }
 
-private fun kotlinx.coroutines.CoroutineScope.launchCollectTriggers(
+private fun CoroutineScope.launchCollectTriggers(
     sm: RadarStateMachine,
     sink: MutableList<String>,
 ) {
-    kotlinx.coroutines.launch {
+    launch {
         sm.pairingTriggers.collect { sink += it }
     }
 }
