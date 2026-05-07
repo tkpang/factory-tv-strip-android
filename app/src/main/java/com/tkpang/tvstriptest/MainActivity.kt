@@ -8,53 +8,75 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tkpang.tvstriptest.ble.BleDeviceSession
 import com.tkpang.tvstriptest.ble.BleScanner
+import com.tkpang.tvstriptest.factory.CommandDispatcher
 import com.tkpang.tvstriptest.factory.DeviceCommandSession
 import com.tkpang.tvstriptest.factory.FactoryViewModel
 import com.tkpang.tvstriptest.factory.PerDeviceBleDispatcher
+import com.tkpang.tvstriptest.factory.WritePidViewModel
 import com.tkpang.tvstriptest.protocol.BleDeviceInfo
 import com.tkpang.tvstriptest.protocol.LeMessageCodec
+import com.tkpang.tvstriptest.ui.launch.LaunchScreen
+import com.tkpang.tvstriptest.ui.wizard.FactoryWizardScreen
+import com.tkpang.tvstriptest.ui.writepid.WritePidScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: FactoryViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val scanner = BleScanner(this@MainActivity)
-                val dispatcher = PerDeviceBleDispatcher { device ->
-                    AndroidDeviceCommandSession.create(this@MainActivity, device.address)
-                }
-                return FactoryViewModel(scanner, dispatcher) as T
-            }
-        }
-    }
+    private lateinit var scanner: BleScanner
+    private lateinit var dispatcher: CommandDispatcher
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestFactoryPermissions()
+        scanner = BleScanner(this)
+        dispatcher = PerDeviceBleDispatcher { device ->
+            AndroidDeviceCommandSession.create(this, device.address)
+        }
+
         setContent {
             MaterialTheme {
                 Surface {
-                    // TODO Task 22: replace with wizard UI
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Wizard UI — Task 22")
+                    var route by remember { mutableStateOf("launch") }
+                    when (route) {
+                        "launch" -> LaunchScreen(
+                            onTest = { route = "test" },
+                            onWritePid = { route = "writepid" },
+                        )
+                        "test" -> FactoryWizardScreen(
+                            vm = viewModel(factory = factoryViewModelFactory()),
+                            onExit = { route = "launch" },
+                        )
+                        "writepid" -> WritePidScreen(
+                            vm = viewModel(factory = writePidViewModelFactory()),
+                            onBack = { route = "launch" },
+                        )
                     }
                 }
             }
         }
+    }
+
+    private fun factoryViewModelFactory() = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            FactoryViewModel(scanner, dispatcher) as T
+    }
+
+    private fun writePidViewModelFactory() = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            WritePidViewModel(scanner, dispatcher) as T
     }
 
     private fun requestFactoryPermissions() {
@@ -63,7 +85,9 @@ class MainActivity : ComponentActivity() {
         } else {
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-        val missing = permissions.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        val missing = permissions.filter {
+            checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
+        }
         if (missing.isNotEmpty()) {
             requestPermissions(missing.toTypedArray(), REQUEST_FACTORY_PERMISSIONS)
         }
