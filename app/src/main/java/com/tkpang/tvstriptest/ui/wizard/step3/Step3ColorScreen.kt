@@ -69,20 +69,23 @@ fun Step3ColorScreen(
 
 @Composable
 private fun StatusBar(count: Int) {
+    val empty = count == 0
+    val bg = if (empty) Color(0xFFFEF3C7) else Color(0xFFECFDF5)
+    val fg = if (empty) Color(0xFF92400E) else Color(0xFF065F46)
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFFECFDF5))
+            .background(bg)
             .padding(10.dp)
     ) {
         Text(
-            "已配 $count 台",
-            color = Color(0xFF065F46),
+            text = if (empty) "⚠ 还没有已配对设备，请回上一步" else "已配 $count 台",
+            color = fg,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
-        Text("全部 Ready ✓", color = Color(0xFF065F46))
+        if (!empty) Text("全部 Ready ✓", color = fg)
     }
 }
 
@@ -152,23 +155,30 @@ private fun MaxPowerSection(onCommand: (ColorTestUseCase.Command) -> Unit) {
 private fun FeedbackBar(result: ColorTestUseCase.Result?) {
     if (result == null) return
     val ok = result.success
-    val fail = result.failed.size
-    Row(
+    val failed = result.failed
+    val bg = if (failed.isEmpty()) Color(0xFFDCFCE7) else Color(0xFFFEE2E2)
+    val titleColor = if (failed.isEmpty()) Color(0xFF15803D) else Color(0xFFB91C1C)
+    Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(8.dp))
-            .padding(10.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Text(
-            "✓ 已下发：$ok 台",
-            color = Color(0xFF15803D),
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
+            text = if (failed.isEmpty()) "✓ 已下发到 $ok 台设备"
+                   else "⚠ 成功 $ok 台 · 失败 ${failed.size} 台",
+            color = titleColor,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
         )
-        if (fail > 0) {
-            Text("失败 $fail 台", color = Color(0xFFDC2626))
+        // 列出每台失败设备的错误信息，方便诊断
+        failed.forEach { f ->
+            Text(
+                text = "${f.address.takeLast(5).replace(":", "")}: ${f.message}",
+                color = Color(0xFF7F1D1D),
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }
