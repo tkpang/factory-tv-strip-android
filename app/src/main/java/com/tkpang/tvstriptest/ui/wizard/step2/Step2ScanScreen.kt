@@ -17,6 +17,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,9 +38,18 @@ fun Step2ScanScreen(
     state: FactoryUiState,
     onSensitivityChange: (SensitivityLevel) -> Unit,
     onOpenBluetooth: () -> Unit,
+    onStartScan: () -> Unit,
+    onStopScan: () -> Unit,
+    onPairDevice: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var sheetOpen by remember { mutableStateOf(false) }
+
+    // 进入本页面立即开始扫描，离开（或重组销毁）时停止。
+    DisposableEffect(Unit) {
+        onStartScan()
+        onDispose { onStopScan() }
+    }
 
     Column(
         modifier.fillMaxSize().padding(12.dp),
@@ -74,7 +84,10 @@ fun Step2ScanScreen(
             ErrorBannerView(state.errorBanner, onOpenBluetooth)
         }
 
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
             if (state.errorBanner == null && state.visibleDevices.isEmpty()) {
                 EmptyScanState()
             } else {
@@ -82,6 +95,7 @@ fun Step2ScanScreen(
                     devices = state.visibleDevices,
                     sensitivity = state.settings.sensitivity,
                     pairingStates = emptyMap(),
+                    onDeviceClick = onPairDevice,
                 )
             }
         }

@@ -68,6 +68,9 @@ fun FactoryWizardScreen(
                                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     },
+                    onStartScan = vm::startScan,
+                    onStopScan = vm::stopScan,
+                    onPairDevice = vm::pairDevice,
                 )
                 WizardStep.COLOR -> Step3ColorScreen(
                     state = state,

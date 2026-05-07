@@ -11,12 +11,10 @@ import com.tkpang.tvstriptest.model.PidFilter
 import com.tkpang.tvstriptest.model.ScanDevice
 import com.tkpang.tvstriptest.model.SensitivityLevel
 import com.tkpang.tvstriptest.model.WizardStep
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -32,22 +30,15 @@ class FactoryViewModel(
     private val _unbindProgress = MutableStateFlow<UnbindUseCase.Progress?>(null)
     private val _errorBanner = MutableStateFlow<ErrorBanner?>(null)
 
-    private val sensitivityFlow: StateFlow<SensitivityLevel> =
-        _settings.map { it.sensitivity }.stateIn(
-            viewModelScope, SharingStarted.Eagerly, SensitivityLevel.NEAR,
-        )
-
+    // 雷达上展示的设备：原始扫描结果按 step1 配置（PID 筛选 + 仅未绑定）过滤，
+    // 再剔除已经配对的，避免重复点击。
     private val filteredDevices: StateFlow<List<ScanDevice>> = combine(
-        scanner.devices, _settings,
-    ) { raw, s -> ScanFilterUseCase.apply(raw, s.pidFilter, s.onlyUnbonded) }.stateIn(
-        viewModelScope, SharingStarted.Eagerly, emptyList(),
-    )
-
-    private val radarStateMachine = RadarStateMachine(
-        sensitivity = sensitivityFlow,
-        source = filteredDevices,
-        scope = viewModelScope,
-    )
+        scanner.devices, _settings, _pairedDevices,
+    ) { raw, s, paired ->
+        val pairedAddrs = paired.map { it.address }.toSet()
+        ScanFilterUseCase.apply(raw, s.pidFilter, s.onlyUnbonded)
+            .filterNot { it.address in pairedAddrs }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val uiState: StateFlow<FactoryUiState> = run {
         val groupA = combine(_step, _settings, filteredDevices, _pairedDevices) {
@@ -71,34 +62,39 @@ class FactoryViewModel(
         }.stateIn(viewModelScope, SharingStarted.Eagerly, FactoryUiState())
     }
 
-    init {
-        viewModelScope.launch {
-            radarStateMachine.pairingTriggers.collect { addr -> handlePairingTrigger(addr) }
-        }
-    }
+    private val pairingInFlight = MutableStateFlow(false)
 
-    private suspend fun handlePairingTrigger(addr: String) {
-        val executor = PairingExecutorImpl(dispatcher, _settings.value.pidFilter)
-        val outcome = executor.pair(addr)
-        when (outcome) {
-            is PairingOutcome.Paired -> {
-                _pairedDevices.value = _pairedDevices.value + FactoryDevice(addr, name = null)
-                _pairingMessage.value = "✓ ${addr.takeLast(4)} 已配上"
-                radarStateMachine.markHandled(addr)
-            }
-            is PairingOutcome.PidMismatch -> {
-                _pairingMessage.value = "⚠ ${addr.takeLast(4)} PID 不符 · 跳过"
-                radarStateMachine.markHandled(addr)
-            }
-            is PairingOutcome.PermanentlyFailed -> {
-                radarStateMachine.markHandled(addr)
-            }
-            is PairingOutcome.ConnectFailed,
-            is PairingOutcome.BondFailed -> {
-                viewModelScope.launch {
-                    delay(2000)
-                    radarStateMachine.resetDevice(addr)
+    /** 用户在雷达上点击设备 → 手动触发配对。已配/进行中时忽略。 */
+    fun pairDevice(address: String) {
+        if (pairingInFlight.value) {
+            _pairingMessage.value = "正在处理上一台设备…"
+            return
+        }
+        if (_pairedDevices.value.any { it.address == address }) return
+        viewModelScope.launch {
+            pairingInFlight.value = true
+            try {
+                val executor = PairingExecutorImpl(dispatcher, _settings.value.pidFilter)
+                when (val outcome = executor.pair(address)) {
+                    is PairingOutcome.Paired -> {
+                        _pairedDevices.value = _pairedDevices.value + FactoryDevice(address, name = null)
+                        _pairingMessage.value = "✓ ${address.takeLast(5)} 已配上"
+                    }
+                    is PairingOutcome.PidMismatch -> {
+                        _pairingMessage.value = "⚠ ${address.takeLast(5)} PID 不符（实际 ${outcome.actualPid}）"
+                    }
+                    is PairingOutcome.ConnectFailed -> {
+                        _pairingMessage.value = "✗ ${address.takeLast(5)} 连接失败，请重试"
+                    }
+                    is PairingOutcome.BondFailed -> {
+                        _pairingMessage.value = "✗ ${address.takeLast(5)} 绑定失败，请重试"
+                    }
+                    is PairingOutcome.PermanentlyFailed -> {
+                        _pairingMessage.value = "✗ ${address.takeLast(5)} 多次失败，已跳过"
+                    }
                 }
+            } finally {
+                pairingInFlight.value = false
             }
         }
     }

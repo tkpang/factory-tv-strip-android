@@ -13,20 +13,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tkpang.tvstriptest.factory.WritePidViewModel
 import com.tkpang.tvstriptest.model.ProductCatalog
+import com.tkpang.tvstriptest.model.ScanDevice
+import com.tkpang.tvstriptest.model.SensitivityLevel
+import com.tkpang.tvstriptest.ui.wizard.step2.PulseRadar
 
 @Composable
 fun WritePidScreen(
@@ -35,7 +41,12 @@ fun WritePidScreen(
 ) {
     val pid by vm.selectedPid.collectAsStateWithLifecycle()
     val phase by vm.phase.collectAsStateWithLifecycle()
-    val options = ProductCatalog.productTypes.first { it.devName == "STV1" }.pidOptions
+    val devices by vm.devices.collectAsStateWithLifecycle()
+    val sensitivity by vm.sensitivity.collectAsStateWithLifecycle()
+
+    DisposableEffect(Unit) {
+        onDispose { vm.exit() }
+    }
 
     Column(
         Modifier
@@ -44,75 +55,205 @@ fun WritePidScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("← 返回") }
-            Spacer(Modifier.weight(1f))
-            Text("写 PID 工具", fontWeight = FontWeight.Bold)
-        }
+        Header(onBack = { vm.exit(); onBack() })
 
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFFEF3C7))
-                .padding(10.dp)
-        ) {
-            Text(
-                "⚠ 仅供工厂出厂线使用 · 一次只配一台",
-                color = Color(0xFF92400E),
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-
-        Text("选择要写入的 PID", fontWeight = FontWeight.Bold)
-        Card {
-            Column {
-                options.forEach { option ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = pid == option.pid,
-                            onClick = { vm.selectPid(option.pid) },
-                        )
-                        Text(option.displayName, modifier = Modifier.weight(1f))
-                        Text("${option.pid}", color = Color(0xFF64748B))
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.weight(1f))
+        WarningBanner()
 
         when (val p = phase) {
-            is WritePidViewModel.Phase.Idle -> Button(
-                onClick = vm::start,
-                enabled = pid != null,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("开始写入") }
-            is WritePidViewModel.Phase.Scanning -> Text("正在扫描设备…")
-            is WritePidViewModel.Phase.Writing -> Text("正在写入到 ${p.device.address}")
-            is WritePidViewModel.Phase.Success -> Column {
+            is WritePidViewModel.Phase.Idle -> SelectPidSection(
+                selectedPid = pid,
+                onSelect = vm::selectPid,
+                onStart = vm::startScanning,
+            )
+            is WritePidViewModel.Phase.Scanning -> ScanningSection(
+                devices = devices,
+                sensitivity = sensitivity,
+                selectedPid = pid,
+                onPick = vm::pickDeviceAndWrite,
+            )
+            is WritePidViewModel.Phase.Writing -> WritingSection(
+                address = p.address,
+                pid = p.pid,
+            )
+            is WritePidViewModel.Phase.Success -> SuccessSection(
+                pid = p.pid,
+                address = p.address,
+                onContinue = vm::continueScanning,
+            )
+            is WritePidViewModel.Phase.Failed -> FailedSection(
+                message = p.message,
+                onRetry = vm::continueScanning,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Header(onBack: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = onBack) { Text("← 返回") }
+        Spacer(Modifier.weight(1f))
+        Text("写 PID 工具", fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun WarningBanner() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFFEF3C7))
+            .padding(10.dp)
+    ) {
+        Text(
+            "⚠ 仅供工厂出厂线使用 · 一次只配一台",
+            color = Color(0xFF92400E),
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun SelectPidSection(
+    selectedPid: Int?,
+    onSelect: (Int) -> Unit,
+    onStart: () -> Unit,
+) {
+    val options = ProductCatalog.productTypes.first { it.devName == "STV1" }.pidOptions
+    Text("选择要写入的 PID", fontWeight = FontWeight.Bold)
+    Card {
+        Column {
+            options.forEach { option ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = selectedPid == option.pid,
+                        onClick = { onSelect(option.pid) },
+                    )
+                    Text(option.displayName, modifier = Modifier.weight(1f))
+                    Text("${option.pid}", color = Color(0xFF64748B))
+                }
+            }
+        }
+    }
+    Button(
+        onClick = onStart,
+        enabled = selectedPid != null,
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text("开始扫描") }
+}
+
+@Composable
+private fun ScanningSection(
+    devices: List<ScanDevice>,
+    sensitivity: SensitivityLevel,
+    selectedPid: Int?,
+    onPick: (String) -> Unit,
+) {
+    Text(
+        "把要写入的 1 台灯带凑近，点击雷达上的设备开始写入（PID = $selectedPid）",
+        style = MaterialTheme.typography.labelMedium,
+        color = Color(0xFF475569),
+    )
+    Box(
+        modifier = Modifier.fillMaxWidth().height(360.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (devices.isEmpty()) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("🔍", style = MaterialTheme.typography.displayMedium)
                 Text(
-                    "✓ PID 已写入：${p.pid}",
-                    color = Color(0xFF15803D),
-                    fontWeight = FontWeight.Bold,
+                    "扫描中…还没扫到设备",
+                    color = Color(0xFF94A3B8),
+                    fontWeight = FontWeight.SemiBold,
                 )
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = vm::reset, modifier = Modifier.fillMaxWidth()) {
-                    Text("再写一台")
-                }
+                Text(
+                    "确认设备已通电、距离 ≤ 5 米",
+                    color = Color(0xFFCBD5E1),
+                    style = MaterialTheme.typography.labelSmall,
+                )
             }
-            is WritePidViewModel.Phase.Failed -> Column {
-                Text("✗ ${p.message}", color = Color(0xFFDC2626))
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = vm::reset, modifier = Modifier.fillMaxWidth()) {
-                    Text("重试")
-                }
-            }
+        } else {
+            PulseRadar(
+                devices = devices,
+                sensitivity = sensitivity,
+                pairingStates = emptyMap(),
+                onDeviceClick = onPick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WritingSection(address: String, pid: Int) {
+    Box(
+        Modifier.fillMaxWidth().height(360.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("⚙", style = MaterialTheme.typography.displayMedium)
+            Text(
+                "正在写入 PID $pid 到 ${address.takeLast(5).replace(":", "")}",
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "连接 → 写入 → 校验 → 解绑",
+                color = Color(0xFF64748B),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuccessSection(pid: Int, address: String, onContinue: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("✓", style = MaterialTheme.typography.displayLarge, color = Color(0xFF15803D))
+        Text(
+            "PID $pid 已写入并解绑",
+            color = Color(0xFF15803D),
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            "设备 ${address.takeLast(5).replace(":", "")} 已回到出厂未配状态",
+            color = Color(0xFF64748B),
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
+            Text("再写一台")
+        }
+    }
+}
+
+@Composable
+private fun FailedSection(message: String, onRetry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("✗", style = MaterialTheme.typography.displayLarge, color = Color(0xFFDC2626))
+        Text(
+            message,
+            color = Color(0xFFDC2626),
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+            Text("重试")
         }
     }
 }

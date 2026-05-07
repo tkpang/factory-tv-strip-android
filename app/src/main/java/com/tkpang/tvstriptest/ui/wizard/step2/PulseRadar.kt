@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,6 +43,7 @@ fun PulseRadar(
     sensitivity: SensitivityLevel,
     pairingStates: Map<String, PairingState> = emptyMap(),
     radius: Dp = 110.dp,
+    onDeviceClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.size(radius * 2), contentAlignment = Alignment.Center) {
@@ -50,7 +52,12 @@ fun PulseRadar(
         CenterDot()
         devices.forEach { device ->
             val state = pairingStates[device.address] ?: device.pairingState
-            DeviceBlip(device = device, state = state, radarRadiusPx = radius.value)
+            DeviceBlip(
+                device = device,
+                state = state,
+                radarRadiusPx = radius.value,
+                onClick = { onDeviceClick(device.address) },
+            )
         }
     }
 }
@@ -116,7 +123,12 @@ private fun CenterDot() {
 }
 
 @Composable
-private fun DeviceBlip(device: ScanDevice, state: PairingState, radarRadiusPx: Float) {
+private fun DeviceBlip(
+    device: ScanDevice,
+    state: PairingState,
+    radarRadiusPx: Float,
+    onClick: () -> Unit,
+) {
     val (bg, fg, dot) = chipColors(state)
     val (xFrac, yFrac) = positionForDevice(device)
     val xDp = (xFrac * radarRadiusPx).dp
@@ -126,7 +138,9 @@ private fun DeviceBlip(device: ScanDevice, state: PairingState, radarRadiusPx: F
     Box(
         Modifier
             .offset(x = xDp, y = yDp)
+            .clip(CircleShape)
             .background(bg, CircleShape)
+            .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
