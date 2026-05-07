@@ -91,12 +91,10 @@ private class AndroidFactoryScanner(
     override val devices: StateFlow<List<ScanDevice>> = scanner.devices
 
     @Suppress("MissingPermission")
-    override fun start(targetCount: Int, rssiThreshold: Int): Boolean = scanner.start(targetCount, rssiThreshold)
+    override fun start(): Boolean = scanner.start()
 
     @Suppress("MissingPermission")
     override fun stop() = scanner.stop()
-
-    override fun setSelected(address: String, selected: Boolean) = scanner.setSelected(address, selected)
 }
 
 private class AndroidDeviceCommandSession(

@@ -6,8 +6,14 @@ data class ScanDevice(
     val address: String,
     val name: String?,
     val rssi: Int,
-    val autoSelected: Boolean,
-    val selected: Boolean,
+    val pid: Int? = null,
+    val isBonded: Boolean = false,
+    val pairingState: PairingState = PairingState.DETECTED,
+    // Legacy fields — kept for backward compatibility; Task 12 will remove them
+    @Deprecated("Superseded by pairingState logic in Task 12 use-cases")
+    val autoSelected: Boolean = false,
+    @Deprecated("Superseded by pairingState logic in Task 12 use-cases")
+    val selected: Boolean = false,
 )
 
 data class FactoryDevice(

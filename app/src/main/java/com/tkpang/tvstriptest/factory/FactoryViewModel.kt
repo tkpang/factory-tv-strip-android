@@ -20,9 +20,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 interface FactoryScanner {
     val devices: StateFlow<List<ScanDevice>>
-    fun start(targetCount: Int, rssiThreshold: Int): Boolean
+    fun start(): Boolean
     fun stop()
-    fun setSelected(address: String, selected: Boolean)
 }
 
 data class FactoryUiState(
@@ -88,11 +87,7 @@ class FactoryViewModel(
     }
 
     fun startScan() {
-        val state = _uiState.value
-        val started = scanner?.start(
-            targetCount = state.settings.targetDeviceCount,
-            rssiThreshold = state.settings.rssiThreshold,
-        ) ?: false
+        val started = scanner?.start() ?: false
         _uiState.update {
             it.copy(
                 isScanning = started,
@@ -107,7 +102,7 @@ class FactoryViewModel(
     }
 
     fun setSelected(address: String, selected: Boolean) {
-        scanner?.setSelected(address, selected)
+        // TODO Task 12 rewire — scanner.setSelected removed; selection logic moves to use-cases
         _uiState.update { state ->
             state.copy(scanDevices = state.scanDevices.map {
                 if (it.address == address) it.copy(selected = selected) else it
