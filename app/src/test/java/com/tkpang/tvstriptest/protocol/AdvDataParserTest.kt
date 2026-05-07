@@ -58,6 +58,41 @@ class AdvDataParserTest {
         }
     }
 
+    @Test
+    fun parseStrippedReadsBondAndPidFromShortPayload() {
+        val bytes = buildStripped(bondByte = 0xA0.toByte(), pid = 144)
+        val parsed = AdvDataParser.parseStripped(bytes)
+        assertEquals(144, parsed?.pid)
+        assertEquals(true, parsed?.isBonded)
+    }
+
+    @Test
+    fun parseStrippedReturnsNullWhenTooShort() {
+        assertNull(AdvDataParser.parseStripped(byteArrayOf(0x20, 0x01)))
+    }
+
+    @Test
+    fun parseStrippedHandlesAllStvPids() {
+        listOf(111, 112, 143, 144, 145, 158).forEach { pid ->
+            val bytes = buildStripped(bondByte = 0x20, pid = pid)
+            assertEquals(pid, AdvDataParser.parseStripped(bytes)?.pid)
+        }
+    }
+
+    private fun buildStripped(bondByte: Byte, pid: Int): ByteArray {
+        // Android 把 manufacturer ID ('LP') 剥掉后给的 13 字节
+        val data = ByteArray(13)
+        data[0] = bondByte
+        data[1] = 0x01  // version
+        data[2] = 0x00  // encrypt
+        // bytes 3..8 MAC (zero ok)
+        data[9]  = (pid and 0xFF).toByte()
+        data[10] = ((pid ushr 8) and 0xFF).toByte()
+        data[11] = ((pid ushr 16) and 0xFF).toByte()
+        data[12] = ((pid ushr 24) and 0xFF).toByte()
+        return data
+    }
+
     private fun buildAdv(magic: String, bondByte: Byte, pid: Int): ByteArray {
         val data = ByteArray(15)
         data[0] = magic[0].code.toByte()

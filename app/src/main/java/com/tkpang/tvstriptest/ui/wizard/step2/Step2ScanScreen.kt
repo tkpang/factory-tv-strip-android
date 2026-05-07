@@ -70,7 +70,7 @@ fun Step2ScanScreen(
             }
             Spacer(Modifier.width(8.dp))
             Text(
-                state.pairingMessage ?: "附近 ${state.visibleDevices.size} 台",
+                "附近 ${state.visibleDevices.size} 台",
                 style = MaterialTheme.typography.labelMedium,
                 color = Color(0xFF64748B),
                 modifier = Modifier.weight(1f),
@@ -78,6 +78,11 @@ fun Step2ScanScreen(
             IconButton(onClick = { sheetOpen = true }) {
                 Text("⚙", style = MaterialTheme.typography.titleMedium)
             }
+        }
+
+        // 配对反馈横幅：成功 / 失败 / 信息三种色调，大块显眼，工厂工人远距离也能看清
+        state.pairingMessage?.let { msg ->
+            PairingFeedbackBanner(msg)
         }
 
         if (state.errorBanner != null) {
@@ -117,6 +122,30 @@ fun Step2ScanScreen(
             current = state.settings.sensitivity,
             onChange = onSensitivityChange,
             onDismiss = { sheetOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun PairingFeedbackBanner(message: String) {
+    val (bg, fg) = when {
+        message.startsWith("✓") -> Color(0xFFDCFCE7) to Color(0xFF15803D)  // success 绿
+        message.startsWith("⚠") -> Color(0xFFFEF3C7) to Color(0xFF92400E)  // warn 黄
+        message.startsWith("✗") -> Color(0xFFFEE2E2) to Color(0xFFB91C1C)  // error 红
+        else -> Color(0xFFE0F2FE) to Color(0xFF0369A1)                     // info 蓝
+    }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Text(
+            message,
+            color = fg,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
         )
     }
 }

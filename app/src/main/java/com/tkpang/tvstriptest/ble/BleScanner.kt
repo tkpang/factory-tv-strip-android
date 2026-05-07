@@ -97,10 +97,25 @@ class BleScanner(
 
         val address = result.device.address ?: return
 
-        val mfgArray: ByteArray? = result.scanRecord?.manufacturerSpecificData?.let { sparse ->
-            if (sparse.size() == 0) null else sparse.valueAt(0)
+        // 固件把 'L''P' 当成 manufacturer ID 写到广播包里（LE 序：0x4C 0x50 → ID = 0x504C），
+        // Android 解析时会把这两个字节作为 key，剩下的 13 字节才是 SparseArray 的 value。
+        // 所以这里要么按 ID 直接查 0x504C，要么遍历所有 entry 找一段长度对得上的。
+        val parsed: AdvDataParser.Parsed? = run {
+            val sparse = result.scanRecord?.manufacturerSpecificData ?: return@run null
+            val direct = sparse.get(LP_MFG_ID)
+            if (direct != null) {
+                AdvDataParser.parseStripped(direct)
+            } else {
+                // 兼容路径：有的 stack 不解析 mfg ID 而是把整段塞回来；尝试按完整布局解析。
+                var found: AdvDataParser.Parsed? = null
+                for (i in 0 until sparse.size()) {
+                    val v = sparse.valueAt(i) ?: continue
+                    found = AdvDataParser.parse(v)
+                    if (found != null) break
+                }
+                found
+            }
         }
-        val parsed = mfgArray?.let { AdvDataParser.parse(it) }
 
         synchronized(lock) {
             candidates[address] = Candidate(
@@ -134,5 +149,10 @@ class BleScanner(
             Manifest.permission.ACCESS_FINE_LOCATION
         }
         return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private companion object {
+        // 'L'(0x4C) + 'P'(0x50) 在小端 uint16 中为 0x504C
+        const val LP_MFG_ID = 0x504C
     }
 }

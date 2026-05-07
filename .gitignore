@@ -8,4 +8,6 @@ local.properties
 *.aab
 *.keystore
 *.jks
+# 例外：固定的 debug keystore 必须 commit，CI 才能生成签名一致的 debug APK。
+!app/debug.keystore
 .superpowers/
