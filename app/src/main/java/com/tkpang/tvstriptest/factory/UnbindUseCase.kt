@@ -31,8 +31,7 @@ class UnbindUseCase(
             }
             for (task in tasks) {
                 val result = task.await()
-                if (!result.success) failed += result
-                completed += 1
+                if (result.success) completed += 1 else failed += result
                 emit(Progress(completed, devices.size, failed.toList()))
             }
         }

@@ -54,7 +54,7 @@ class DpCommandsTest {
     fun grooveHandleEscapesJsonStringCharacters() {
         assertEquals(
             "{\"d160\":\"\\\\\\\"\\n\\r\\t\\b\\f\\u0001\\u001f\"}",
-            DpCommands.grooveHandle("\\\"\n\r\t\b"),
+            DpCommands.grooveHandle("\\\"\n\r\t\b"),
         )
     }
 
