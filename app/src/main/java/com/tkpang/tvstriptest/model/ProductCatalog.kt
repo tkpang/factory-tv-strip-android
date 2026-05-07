@@ -3,7 +3,7 @@ package com.tkpang.tvstriptest.model
 data class PidOption(
     val pid: Int,
     val displayName: String,
-    val ledCount: Int?,
+    val ledCount: Int? = null,  // 保留字段但全 null，未来可能用
 )
 
 data class ProductType(
@@ -16,26 +16,21 @@ object ProductCatalog {
     val productTypes: List<ProductType> = listOf(
         ProductType(
             devName = "STV1",
-            displayName = "STV1-摄像头灯带",
+            displayName = "STV1 摄像头灯带",
             pidOptions = listOf(
-                PidOption(111, "STV1 Online 3M", 36),
-                PidOption(112, "STV1 Online 5M", 50),
-                PidOption(143, "STV1 Offline 3M", 48),
-                PidOption(144, "STV1 Offline 5M", 68),
-                PidOption(145, "STV1 Offline 3M High Density", 72),
-                PidOption(158, "STV1 Online 2M", 24),
+                PidOption(158, "线上 2 米"),
+                PidOption(111, "线上 3 米"),
+                PidOption(112, "线上 5 米"),
+                PidOption(143, "线下 3 米"),
+                PidOption(144, "线下 5 米"),
+                PidOption(145, "线下 3 米 高密"),
             ),
         ),
-        ProductType("S2", "S2-RGBCW灯带", emptyList()),
-        ProductType("SW1", "SW1-防水灯带", emptyList()),
-        ProductType("S1_V2", "S1-V2-灯带", emptyList()),
+        ProductType("S2",    "S2 RGBCW 灯带", emptyList()),
+        ProductType("SW1",   "SW1 防水灯带",   emptyList()),
+        ProductType("S1_V2", "S1-V2 灯带",     emptyList()),
     )
 
-    fun requireLedCount(devName: String, pid: Int): Int {
-        val product = productTypes.firstOrNull { it.devName == devName }
-            ?: error("Unknown product type: $devName")
-        val option = product.pidOptions.firstOrNull { it.pid == pid }
-            ?: error("Unknown PID $pid for $devName")
-        return option.ledCount ?: error("No LED count for $devName/$pid")
-    }
+    // 临时保留以兼容现有 CommandDispatcher / FactoryViewModel 调用，Task 5 会删
+    fun requireLedCount(devName: String, pid: Int): Int = 1
 }
