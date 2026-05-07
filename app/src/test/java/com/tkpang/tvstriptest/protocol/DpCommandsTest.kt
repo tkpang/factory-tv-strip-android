@@ -14,7 +14,7 @@ class DpCommandsTest {
     fun maxBrightnessJsonClampsToValidRange() {
         assertEquals("{\"d162\":1000}", DpCommands.setMaxBrightness(1000))
         assertEquals("{\"d162\":1000}", DpCommands.setMaxBrightness(1200))
-        assertEquals("{\"d162\":0}", DpCommands.setMaxBrightness(-1))
+        assertEquals("{\"d162\":0}",    DpCommands.setMaxBrightness(-1))
     }
 
     @Test
@@ -24,36 +24,22 @@ class DpCommandsTest {
     }
 
     @Test
-    fun solidGrooveCommandUsesLedCountAndRgb() {
-        assertEquals(
-            "N01:P1000112abef;",
-            DpCommands.solidColorGroove(ledCount = 2, rgb = 0x12ABEF),
-        )
+    fun solidColorGrooveProducesP10001Format() {
+        assertEquals("N01:P10001ff0000;", DpCommands.solidColorGroove(0xFF0000))
+        assertEquals("N01:P1000100ff00;", DpCommands.solidColorGroove(0x00FF00))
+        assertEquals("N01:P100010000ff;", DpCommands.solidColorGroove(0x0000FF))
+        assertEquals("N01:P10001ffffff;", DpCommands.solidColorGroove(0xFFFFFF))
+        assertEquals("N01:P10001000000;", DpCommands.solidColorGroove(0x000000))
     }
 
     @Test
-    fun solidGrooveAcceptsLedCountBoundaries() {
-        assertEquals(
-            "N01:P10001000000;",
-            DpCommands.solidColorGroove(ledCount = 1, rgb = 0x000000),
-        )
-
-        assertEquals(
-            "N01:P10001000000;",
-            DpCommands.solidColorGroove(ledCount = 0xFF, rgb = 0x000000),
-        )
-    }
-
-    @Test
-    fun solidGrooveAcceptsRgbBoundaries() {
-        assertEquals(
-            "N01:P10001000000;",
-            DpCommands.solidColorGroove(ledCount = 1, rgb = 0x000000),
-        )
-        assertEquals(
-            "N01:P10001ffffff;",
-            DpCommands.solidColorGroove(ledCount = 1, rgb = 0xFFFFFF),
-        )
+    fun solidColorGrooveRejectsRgbOutsideRange() {
+        assertThrows(IllegalArgumentException::class.java) {
+            DpCommands.solidColorGroove(rgb = -1)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            DpCommands.solidColorGroove(rgb = 0x1000000)
+        }
     }
 
     @Test
@@ -68,39 +54,12 @@ class DpCommandsTest {
     fun grooveHandleEscapesJsonStringCharacters() {
         assertEquals(
             "{\"d160\":\"\\\\\\\"\\n\\r\\t\\b\\f\\u0001\\u001f\"}",
-            DpCommands.grooveHandle("\\\"\n\r\t\b\u000C\u0001\u001F"),
+            DpCommands.grooveHandle("\\\"\n\r\t\b"),
         )
     }
 
     @Test
-    fun solidGrooveRejectsLedCountsOutsideTwoDigitHexRange() {
-        assertThrows(IllegalArgumentException::class.java) {
-            DpCommands.solidColorGroove(ledCount = 0, rgb = 0x000000)
-        }
-        assertThrows(IllegalArgumentException::class.java) {
-            DpCommands.solidColorGroove(ledCount = 0x100, rgb = 0x000000)
-        }
-    }
-
-    @Test
-    fun solidGrooveRejectsRgbOutsideRgb24Range() {
-        assertThrows(IllegalArgumentException::class.java) {
-            DpCommands.solidColorGroove(ledCount = 1, rgb = -1)
-        }
-        assertThrows(IllegalArgumentException::class.java) {
-            DpCommands.solidColorGroove(ledCount = 1, rgb = 0x1000000)
-        }
-    }
-
-    @Test
-    fun highestPowerSequenceReturnsStateBrightnessAndGrooveCommands() {
-        assertEquals(
-            listOf(
-                "{\"d161\":1}",
-                "{\"d162\":1000}",
-                "{\"d160\":\"N01:P1000112abef;\"}",
-            ),
-            DpCommands.highestPowerSequence(ledCount = 2, rgb = 0x12ABEF, brightness = 1200),
-        )
+    fun maxPowerCommandIsHardcodedFirmwareString() {
+        assertEquals("N01:B21001200E5018003E80064;", DpCommands.MAX_POWER_COMMAND)
     }
 }
