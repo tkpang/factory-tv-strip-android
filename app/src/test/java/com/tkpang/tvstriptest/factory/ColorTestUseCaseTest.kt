@@ -73,6 +73,9 @@ class ColorTestUseCaseTest {
         override suspend fun setRainbowScene(device: FactoryDevice): CommandResult {
             calls += "setRainbowScene"; return result(device)
         }
+        override suspend fun setBrightness(device: FactoryDevice, value: Int): CommandResult {
+            calls += "setBrightness"; return result(device)
+        }
         override suspend fun unbindAndDelete(device: FactoryDevice) = ok(device)
         override suspend fun closeAll() = Unit
         private fun result(d: FactoryDevice) =

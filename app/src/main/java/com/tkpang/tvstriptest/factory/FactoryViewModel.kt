@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -151,6 +153,36 @@ class FactoryViewModel(
         }
     }
 
+    // 拖动场景：色盘 / 亮度滑条 高频触发，用 Flow.sample 节流到每 200ms 一次
+    // （即每秒最多 5 次下发，匹配用户要求）。pendingXxx 用 nullable 表示「无变化」。
+    private val _pendingColor = MutableStateFlow<Int?>(null)
+    private val _pendingBrightness = MutableStateFlow<Int?>(null)
+    private val _customColor = MutableStateFlow(0xFFFFFF)  // 上次选过的色，用于亮度独立变化时复用
+    val customColor: StateFlow<Int> = _customColor
+
+    init {
+        viewModelScope.launch {
+            _pendingColor.filterNotNull().sample(THROTTLE_MS).collect { rgb ->
+                _customColor.value = rgb
+                val devices = _pairedDevices.value
+                if (devices.isNotEmpty()) {
+                    devices.forEach { dispatcher.setColor(it, rgb) }
+                }
+            }
+        }
+        viewModelScope.launch {
+            _pendingBrightness.filterNotNull().sample(THROTTLE_MS).collect { value ->
+                val devices = _pairedDevices.value
+                if (devices.isNotEmpty()) {
+                    devices.forEach { dispatcher.setBrightness(it, value) }
+                }
+            }
+        }
+    }
+
+    fun setColorContinuous(rgb: Int) { _pendingColor.value = rgb }
+    fun setBrightnessContinuous(value: Int) { _pendingBrightness.value = value }
+
     // === Step 4 ===
     fun runUnbind() {
         viewModelScope.launch {
@@ -164,3 +196,5 @@ class FactoryViewModel(
 private fun MutableStateFlow<FactorySettings>.update(transform: (FactorySettings) -> FactorySettings) {
     value = transform(value)
 }
+
+private const val THROTTLE_MS = 200L  // 5 次/秒

@@ -82,6 +82,8 @@ fun FactoryWizardScreen(
                 WizardStep.COLOR -> Step3ColorScreen(
                     state = state,
                     onCommand = vm::runColorTest,
+                    onColorContinuous = vm::setColorContinuous,
+                    onBrightnessContinuous = vm::setBrightnessContinuous,
                 )
                 WizardStep.UNBIND -> Step4UnbindScreen(
                     state = state,

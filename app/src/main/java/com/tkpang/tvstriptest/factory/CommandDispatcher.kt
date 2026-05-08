@@ -35,6 +35,8 @@ interface CommandDispatcher {
     suspend fun setMaxPower(device: FactoryDevice): CommandResult
     suspend fun lightOff(device: FactoryDevice): CommandResult
     suspend fun setRainbowScene(device: FactoryDevice): CommandResult
+    /** 单独调亮度 (d52)，色盘/亮度条拖动时高频下发用 */
+    suspend fun setBrightness(device: FactoryDevice, value: Int): CommandResult
     suspend fun unbindAndDelete(device: FactoryDevice): CommandResult
     suspend fun closeAll()
 }
@@ -91,6 +93,12 @@ class PerDeviceBleDispatcher(
         device = device,
         commands = listOf(DpCommands.grooveState(false)),
         successMessage = "Light off",
+    )
+
+    override suspend fun setBrightness(device: FactoryDevice, value: Int): CommandResult = withSession(
+        device = device,
+        commands = listOf(DpCommands.setMaxBrightness(value)),
+        successMessage = "Brightness $value",
     )
 
     override suspend fun setRainbowScene(device: FactoryDevice): CommandResult = withSession(

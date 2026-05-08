@@ -68,14 +68,17 @@ class VersionCheckViewModel(
             val device = FactoryDevice(address, name = null)
             val result = dispatcher.connect(device)
             val info: BleDeviceInfo? = result.deviceInfo
-            _phase.value = if (result.success && info != null) {
-                Phase.Loaded(
+            if (result.success && info != null) {
+                _phase.value = Phase.Loaded(
                     address = address,
                     pid = info.pid,
                     versions = info.allFirmwareVersions,
                 )
+                // 读完版本号后主动 unbond，让设备回到出厂未配状态。
+                // 失败也只是 best-effort，不挡前台 UI 显示。
+                runCatching { dispatcher.unbindAndDelete(device) }
             } else {
-                Phase.Failed(address, message = result.message.ifBlank { "读取失败" })
+                _phase.value = Phase.Failed(address, message = result.message.ifBlank { "读取失败" })
             }
         }
     }

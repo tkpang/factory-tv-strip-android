@@ -3,6 +3,8 @@ package com.tkpang.tvstriptest.ui.wizard.step3
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -38,30 +41,58 @@ import com.tkpang.tvstriptest.model.FactoryUiState
 fun Step3ColorScreen(
     state: FactoryUiState,
     onCommand: (ColorTestUseCase.Command) -> Unit,
+    onColorContinuous: (Int) -> Unit,
+    onBrightnessContinuous: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var tabIndex by remember { mutableStateOf(0) }
+    var brightness by remember { mutableStateOf(1000f) }
 
     Column(
-        modifier.fillMaxSize().padding(12.dp),
+        modifier
+            .fillMaxSize()
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StatusBar(state.pairedDevices.size)
 
         TabRow(selectedTabIndex = tabIndex) {
             Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }) {
-                Text("普通设灯", Modifier.padding(12.dp))
+                Text("常用色", Modifier.padding(12.dp))
             }
             Tab(selected = tabIndex == 1, onClick = { tabIndex = 1 }) {
-                Text("最高亮度", Modifier.padding(12.dp))
+                Text("自定义色盘", Modifier.padding(12.dp))
             }
         }
 
         if (tabIndex == 0) {
             ColorGrid(onCommand)
         } else {
-            MaxPowerSection(onCommand)
+            // 色盘：拖动连续触发，VM 那边 200ms sample 节流为 5 次/秒
+            ColorWheel(
+                onColorChange = onColorContinuous,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+            )
+            Text(
+                "拖动选色（每秒最多发 5 次）",
+                color = Color(0xFF64748B),
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
+
+        // 亮度滑条（两个 tab 都展示）
+        Text("亮度  ${brightness.toInt()}", fontWeight = FontWeight.SemiBold)
+        Slider(
+            value = brightness,
+            onValueChange = {
+                brightness = it
+                onBrightnessContinuous(it.toInt())
+            },
+            valueRange = 0f..1000f,
+        )
 
         FeedbackBar(state.colorTestResult)
     }

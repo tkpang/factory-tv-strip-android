@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -97,6 +98,18 @@ fun WritePidScreen(
                 message = p.message,
                 onRetry = vm::continueScanning,
             )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // 底部大返回按钮（跟测试设备 Wizard 的 BottomNavBar 同款风格）
+        OutlinedButton(
+            onClick = { vm.exit(); onBack() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+        ) {
+            Text("← 返回主页", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
