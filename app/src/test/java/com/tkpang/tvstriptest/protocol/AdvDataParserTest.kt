@@ -85,11 +85,11 @@ class AdvDataParserTest {
         data[0] = bondByte
         data[1] = 0x01  // version
         data[2] = 0x00  // encrypt
-        // bytes 3..8 MAC (zero ok)
-        data[9]  = (pid and 0xFF).toByte()
-        data[10] = ((pid ushr 8) and 0xFF).toByte()
-        data[11] = ((pid ushr 16) and 0xFF).toByte()
-        data[12] = ((pid ushr 24) and 0xFF).toByte()
+        // bytes 3..8 MAC (zero ok); PID 大端：高字节在前
+        data[9]  = ((pid ushr 24) and 0xFF).toByte()
+        data[10] = ((pid ushr 16) and 0xFF).toByte()
+        data[11] = ((pid ushr 8)  and 0xFF).toByte()
+        data[12] = (pid and 0xFF).toByte()
         return data
     }
 
@@ -100,12 +100,11 @@ class AdvDataParserTest {
         data[2] = bondByte
         data[3] = 0x01  // version
         data[4] = 0x00  // encrypt
-        // bytes 5..10 MAC (zero ok for tests)
-        // bytes 11..14 PID little-endian
-        data[11] = (pid and 0xFF).toByte()
-        data[12] = ((pid ushr 8) and 0xFF).toByte()
-        data[13] = ((pid ushr 16) and 0xFF).toByte()
-        data[14] = ((pid ushr 24) and 0xFF).toByte()
+        // bytes 5..10 MAC (zero ok); PID 大端：高字节在前
+        data[11] = ((pid ushr 24) and 0xFF).toByte()
+        data[12] = ((pid ushr 16) and 0xFF).toByte()
+        data[13] = ((pid ushr 8)  and 0xFF).toByte()
+        data[14] = (pid and 0xFF).toByte()
         return data
     }
 }

@@ -11,7 +11,8 @@ package com.tkpang.tvstriptest.protocol
  *   [3]      adv version
  *   [4]      encrypt type
  *   [5..10]  BT MAC (6 bytes)
- *   [11..14] PID (uint32 little-endian)
+ *   [11..14] PID (uint32 big-endian) — 实测固件用 htonl 风格写入，
+ *                                    PID 111 → 字节 [0,0,0,0x6F]
  *
  * Android BLE stack 把 'L' 'P' 作为 manufacturer ID (= 0x504C 小端)，
  * 然后 SparseArray.valueAt() 给出的字节数组**不含** 'LP' 前缀，长度 13。
@@ -44,10 +45,11 @@ object AdvDataParser {
         // 需要至少 13 字节从 offset 算起：bond + version + encrypt + 6 mac + 4 pid
         if (bytes.size - offset < 13) return null
         val isBonded = (bytes[offset].toInt() and 0x80) != 0
-        val pid = (bytes[offset + 9].toInt() and 0xFF) or
-            ((bytes[offset + 10].toInt() and 0xFF) shl 8) or
-            ((bytes[offset + 11].toInt() and 0xFF) shl 16) or
-            ((bytes[offset + 12].toInt() and 0xFF) shl 24)
+        // 大端：高字节在前。PID 111 在固件里用 htonl 写入 → [0x00 0x00 0x00 0x6F]
+        val pid = ((bytes[offset + 9].toInt() and 0xFF) shl 24) or
+            ((bytes[offset + 10].toInt() and 0xFF) shl 16) or
+            ((bytes[offset + 11].toInt() and 0xFF) shl 8) or
+            (bytes[offset + 12].toInt() and 0xFF)
         return Parsed(pid = pid, isBonded = isBonded)
     }
 }
