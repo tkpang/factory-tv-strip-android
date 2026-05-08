@@ -55,6 +55,7 @@ class PairingExecutorTest {
         override suspend fun setColor(device: FactoryDevice, rgb: Int) = ok(device)
         override suspend fun setMaxPower(device: FactoryDevice) = ok(device)
         override suspend fun lightOff(device: FactoryDevice) = ok(device)
+        override suspend fun setRainbowScene(device: FactoryDevice) = ok(device)
         override suspend fun unbindAndDelete(device: FactoryDevice) = ok(device)
         override suspend fun closeAll() = Unit
         private fun ok(d: FactoryDevice) = CommandResult(d.address, true, "ok")

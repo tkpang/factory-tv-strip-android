@@ -28,7 +28,9 @@ import com.tkpang.tvstriptest.protocol.BleDeviceInfo
 import com.tkpang.tvstriptest.protocol.LeMessageCodec
 import com.tkpang.tvstriptest.ui.launch.LaunchScreen
 import com.tkpang.tvstriptest.ui.wizard.FactoryWizardScreen
+import com.tkpang.tvstriptest.ui.version.VersionCheckScreen
 import com.tkpang.tvstriptest.ui.writepid.WritePidScreen
+import com.tkpang.tvstriptest.factory.VersionCheckViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
                         "launch" -> LaunchScreen(
                             onTest = { route = "test" },
                             onWritePid = { route = "writepid" },
+                            onCheckVersion = { route = "version" },
                         )
                         "test" -> FactoryWizardScreen(
                             vm = viewModel(factory = factoryViewModelFactory()),
@@ -59,6 +62,10 @@ class MainActivity : ComponentActivity() {
                         )
                         "writepid" -> WritePidScreen(
                             vm = viewModel(factory = writePidViewModelFactory()),
+                            onBack = { route = "launch" },
+                        )
+                        "version" -> VersionCheckScreen(
+                            vm = viewModel(factory = versionCheckViewModelFactory()),
                             onBack = { route = "launch" },
                         )
                     }
@@ -77,6 +84,12 @@ class MainActivity : ComponentActivity() {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             WritePidViewModel(scanner, dispatcher) as T
+    }
+
+    private fun versionCheckViewModelFactory() = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            VersionCheckViewModel(scanner, dispatcher) as T
     }
 
     private fun requestFactoryPermissions() {

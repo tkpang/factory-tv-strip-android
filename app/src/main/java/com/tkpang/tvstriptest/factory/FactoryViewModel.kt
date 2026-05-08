@@ -77,8 +77,12 @@ class FactoryViewModel(
                 val executor = PairingExecutorImpl(dispatcher, _settings.value.pidFilter)
                 when (val outcome = executor.pair(address)) {
                     is PairingOutcome.Paired -> {
-                        _pairedDevices.value = _pairedDevices.value + FactoryDevice(address, name = null)
+                        val device = FactoryDevice(address, name = null)
+                        _pairedDevices.value = _pairedDevices.value + device
                         _pairingMessage.value = "✓ ${address.takeLast(5)} 已配上"
+                        // 配对成功后给设备点一个彩虹色（情景模式 + RGB 跳变），
+                        // 工厂工人远距离也能立刻看到「这台被配上了」。下发失败不影响配对结果。
+                        runCatching { dispatcher.setRainbowScene(device) }
                     }
                     is PairingOutcome.PidMismatch -> {
                         _pairingMessage.value = "⚠ ${address.takeLast(5)} PID 不符（实际 ${outcome.actualPid}）"

@@ -40,6 +40,7 @@ class UnbindUseCaseTest {
         override suspend fun setColor(device: FactoryDevice, rgb: Int) = ok(device)
         override suspend fun setMaxPower(device: FactoryDevice) = ok(device)
         override suspend fun lightOff(device: FactoryDevice) = ok(device)
+        override suspend fun setRainbowScene(device: FactoryDevice) = ok(device)
         override suspend fun unbindAndDelete(device: FactoryDevice) =
             if (device.address in failAddresses) CommandResult(device.address, false, "boom")
             else ok(device)

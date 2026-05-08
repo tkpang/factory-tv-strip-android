@@ -34,6 +34,7 @@ interface CommandDispatcher {
     suspend fun setColor(device: FactoryDevice, rgb: Int): CommandResult
     suspend fun setMaxPower(device: FactoryDevice): CommandResult
     suspend fun lightOff(device: FactoryDevice): CommandResult
+    suspend fun setRainbowScene(device: FactoryDevice): CommandResult
     suspend fun unbindAndDelete(device: FactoryDevice): CommandResult
     suspend fun closeAll()
 }
@@ -86,6 +87,16 @@ class PerDeviceBleDispatcher(
         device = device,
         commands = listOf(DpCommands.grooveState(false)),
         successMessage = "Light off",
+    )
+
+    override suspend fun setRainbowScene(device: FactoryDevice): CommandResult = withSession(
+        device = device,
+        commands = listOf(
+            DpCommands.grooveState(true),
+            DpCommands.setWorkMode(2),                       // WORK_MODE_SCENE
+            DpCommands.setSceneData(DpCommands.SCENE_DATA_RAINBOW),
+        ),
+        successMessage = "Rainbow scene set",
     )
 
     override suspend fun unbindAndDelete(device: FactoryDevice): CommandResult = withRawPayload(

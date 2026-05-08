@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 fun LaunchScreen(
     onTest: () -> Unit,
     onWritePid: () -> Unit,
+    onCheckVersion: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().background(Color(0xFFF1F5F9)).padding(24.dp),
@@ -56,6 +57,14 @@ fun LaunchScreen(
             subtitle = "扫描 → 配对 → 颜色测试 → 解绑",
             highlighted = true,
             onClick = onTest,
+        )
+        ModeCard(
+            icon = "🔢",
+            iconBg = Color(0xFFE0E7FF),
+            title = "查看版本号",
+            subtitle = "扫描 → 选设备 → 显示 ESP32 / T23 app / T23 sys 版本",
+            highlighted = false,
+            onClick = onCheckVersion,
         )
         ModeCard(
             icon = "✏️",

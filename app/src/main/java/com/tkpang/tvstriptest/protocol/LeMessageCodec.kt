@@ -9,6 +9,13 @@ data class BleDeviceInfo(
     val pid: Int,
     val did: Long,
     val firmwareVersion: String?,
+    /**
+     * 所有 fw_hw_info 条目的固件版本（"x.y.z"）。
+     * - 索引 0：ESP32 主固件
+     * - 索引 1+：MCU 子固件（T23 灯带：app / sys 等）
+     * 顺序由设备端 `le_dev_info_get` 装填决定。
+     */
+    val allFirmwareVersions: List<String> = listOfNotNull(firmwareVersion),
 )
 
 object LeMessageCodec {
@@ -90,15 +97,23 @@ object LeMessageCodec {
         val did = buffer.int.toLong() and 0xFFFF_FFFFL
         buffer.position(65)
         val fwInfoCount = buffer.get().toInt() and 0xFF
-        val firmwareVersion = if (fwInfoCount > 0 && payload.size >= DEV_INFO_FIXED_LEN + FW_HW_INFO_LEN) {
-            val x = payload[66].toInt() and 0xFF
-            val y = payload[67].toInt() and 0xFF
-            val z = payload[68].toInt() and 0xFF
-            "$x.$y.$z"
-        } else {
-            null
+        // 解析所有 fw_hw_info 条目（每个 6 字节：fw x/y/z + hw x/y/z），
+        // 仅取 fw_ver。索引 0 = ESP32 主固件，索引 1+ = MCU 子固件（如 T23 app / sys）。
+        val versions = mutableListOf<String>()
+        for (i in 0 until fwInfoCount) {
+            val base = DEV_INFO_FIXED_LEN + i * FW_HW_INFO_LEN
+            if (payload.size < base + FW_HW_INFO_LEN) break
+            val x = payload[base].toInt() and 0xFF
+            val y = payload[base + 1].toInt() and 0xFF
+            val z = payload[base + 2].toInt() and 0xFF
+            versions += "$x.$y.$z"
         }
-        return BleDeviceInfo(pid = pid, did = did, firmwareVersion = firmwareVersion)
+        return BleDeviceInfo(
+            pid = pid,
+            did = did,
+            firmwareVersion = versions.firstOrNull(),
+            allFirmwareVersions = versions,
+        )
     }
 
     private const val DEV_INFO_FIXED_LEN = 66
