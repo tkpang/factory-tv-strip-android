@@ -12,24 +12,24 @@ class DpCommandsTest {
 
     @Test
     fun maxBrightnessJsonClampsToValidRange() {
-        assertEquals("{\"d162\":1000}", DpCommands.setMaxBrightness(1000))
-        assertEquals("{\"d162\":1000}", DpCommands.setMaxBrightness(1200))
-        assertEquals("{\"d162\":0}",    DpCommands.setMaxBrightness(-1))
+        assertEquals("{\"d52\":1000}", DpCommands.setMaxBrightness(1000))
+        assertEquals("{\"d52\":1000}", DpCommands.setMaxBrightness(1200))
+        assertEquals("{\"d52\":0}",    DpCommands.setMaxBrightness(-1))
     }
 
     @Test
     fun grooveStateJson() {
-        assertEquals("{\"d161\":1}", DpCommands.grooveState(true))
-        assertEquals("{\"d161\":0}", DpCommands.grooveState(false))
+        assertEquals("{\"d1\":1}", DpCommands.grooveState(true))
+        assertEquals("{\"d1\":0}", DpCommands.grooveState(false))
     }
 
     @Test
     fun solidColorGrooveProducesP10001Format() {
-        assertEquals("N01:P10001ff0000;", DpCommands.solidColorGroove(0xFF0000))
-        assertEquals("N01:P1000100ff00;", DpCommands.solidColorGroove(0x00FF00))
-        assertEquals("N01:P100010000ff;", DpCommands.solidColorGroove(0x0000FF))
-        assertEquals("N01:P10001ffffff;", DpCommands.solidColorGroove(0xFFFFFF))
-        assertEquals("N01:P10001000000;", DpCommands.solidColorGroove(0x000000))
+        assertEquals("N01:P10001ff0000F300101;", DpCommands.solidColorGroove(0xFF0000))
+        assertEquals("N01:P1000100ff00F300101;", DpCommands.solidColorGroove(0x00FF00))
+        assertEquals("N01:P100010000ffF300101;", DpCommands.solidColorGroove(0x0000FF))
+        assertEquals("N01:P10001ffffffF300101;", DpCommands.solidColorGroove(0xFFFFFF))
+        assertEquals("N01:P10001000000F300101;", DpCommands.solidColorGroove(0x000000))
     }
 
     @Test
@@ -45,15 +45,15 @@ class DpCommandsTest {
     @Test
     fun grooveHandleWrapsGrooveInD160Json() {
         assertEquals(
-            "{\"d160\":\"N01:P10001000000;\"}",
-            DpCommands.grooveHandle("N01:P10001000000;"),
+            "{\"d50\":\"N01:P10001000000F300101;\"}",
+            DpCommands.grooveHandle("N01:P10001000000F300101;"),
         )
     }
 
     @Test
     fun grooveHandleEscapesJsonStringCharacters() {
         assertEquals(
-            "{\"d160\":\"\\\\\\\"\\n\\r\\t\\b\\f\\u0001\\u001f\"}",
+            "{\"d50\":\"\\\\\\\"\\n\\r\\t\\b\\f\\u0001\\u001f\"}",
             DpCommands.grooveHandle("\\\"\n\r\t\b"),
         )
     }
