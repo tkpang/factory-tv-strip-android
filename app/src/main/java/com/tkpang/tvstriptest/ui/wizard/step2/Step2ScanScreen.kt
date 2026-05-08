@@ -1,7 +1,6 @@
 package com.tkpang.tvstriptest.ui.wizard.step2
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -92,30 +89,18 @@ fun Step2ScanScreen(
             ErrorBannerView(state.errorBanner, onOpenBluetooth)
         }
 
-        // 双指放大缩小：pinch 调整雷达半径（80dp - 320dp），
-        // 设备多的时候把雷达撑大、chip 散开方便点击
-        var radarRadius by remember { mutableStateOf(150.dp) }
-        val density = LocalDensity.current
-        val pinchZoom = Modifier.pointerInput(Unit) {
-            detectTransformGestures { _, _, zoom, _ ->
-                with(density) {
-                    radarRadius = (radarRadius.toPx() * zoom).toDp().coerceIn(80.dp, 320.dp)
-                }
-            }
-        }
-
         Box(
-            modifier = Modifier.weight(1f).fillMaxWidth().then(pinchZoom),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
             if (state.errorBanner == null && state.visibleDevices.isEmpty()) {
                 EmptyScanState()
             } else {
+                // PulseRadar 自带双指缩放，所有调用点都自动获得
                 PulseRadar(
                     devices = state.visibleDevices,
                     sensitivity = state.settings.sensitivity,
                     pairingStates = emptyMap(),
-                    radius = radarRadius,
                     onDeviceClick = onPairDevice,
                 )
             }

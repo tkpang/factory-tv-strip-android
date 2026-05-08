@@ -66,8 +66,11 @@ class PerDeviceBleDispatcher(
 
     override suspend fun setColor(device: FactoryDevice, rgb: Int): CommandResult = withSession(
         device = device,
+        // 设备出厂可能在 TV/未定义模式，d160 静态色不响应。固件 do_test_3_loop
+        // 强制 d2=WORK_MODE_SCENE(2) 后才调 P10001<rgb>，我们这里也照做。
         commands = listOf(
             DpCommands.grooveState(true),
+            DpCommands.setWorkMode(2),
             DpCommands.setMaxBrightness(1000),
             DpCommands.grooveHandle(DpCommands.solidColorGroove(rgb)),
         ),
@@ -78,6 +81,7 @@ class PerDeviceBleDispatcher(
         device = device,
         commands = listOf(
             DpCommands.grooveState(true),
+            DpCommands.setWorkMode(2),
             DpCommands.grooveHandle(DpCommands.MAX_POWER_COMMAND),
         ),
         successMessage = "Max power set",
@@ -91,10 +95,12 @@ class PerDeviceBleDispatcher(
 
     override suspend fun setRainbowScene(device: FactoryDevice): CommandResult = withSession(
         device = device,
+        // 用固件 aging test 里那条 RGB 三段彩虹 groove 命令
+        // (P10003 程序 + RGB 三色 + 时序 + 重复)，比 d6 scene 数据更稳。
         commands = listOf(
             DpCommands.grooveState(true),
-            DpCommands.setWorkMode(2),                       // WORK_MODE_SCENE
-            DpCommands.setSceneData(DpCommands.SCENE_DATA_RAINBOW),
+            DpCommands.setWorkMode(2),
+            DpCommands.grooveHandle(DpCommands.GROOVE_RAINBOW_RGB3),
         ),
         successMessage = "Rainbow scene set",
     )

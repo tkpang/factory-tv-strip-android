@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -43,11 +49,28 @@ fun PulseRadar(
     devices: List<ScanDevice>,
     sensitivity: SensitivityLevel,
     pairingStates: Map<String, PairingState> = emptyMap(),
-    radius: Dp = 150.dp,
+    initialRadius: Dp = 150.dp,
+    enableZoom: Boolean = true,
     onDeviceClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.size(radius * 2), contentAlignment = Alignment.Center) {
+    // 双指缩放：让所有雷达调用点自动获得 pinch-zoom 能力，不用每个调用方各搞一遍。
+    var radius by remember { mutableStateOf(initialRadius) }
+    val density = LocalDensity.current
+    val zoomMod = if (enableZoom) {
+        Modifier.pointerInput(Unit) {
+            detectTransformGestures { _, _, zoom, _ ->
+                with(density) {
+                    radius = (radius.toPx() * zoom).toDp().coerceIn(80.dp, 320.dp)
+                }
+            }
+        }
+    } else Modifier
+
+    Box(
+        modifier = modifier.size(radius * 2).then(zoomMod),
+        contentAlignment = Alignment.Center,
+    ) {
         PulseRings(radius = radius)
         AutoPairZone(radius = radius, fraction = sensitivity.zoneRadiusFraction)
         CenterDot()
